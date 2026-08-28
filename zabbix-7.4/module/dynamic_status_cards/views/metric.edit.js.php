@@ -23,7 +23,7 @@ window.dynamic_status_cards_metric_edit_form = new class {
 		this.#form = document.getElementById(form_id);
 
 		this.#form.querySelectorAll(
-			'[name="formato"], [name="estado_modo"], [name="exibicao"], [name="estado_percentual_calculado"], [name="historico_cores_personalizadas"]'
+			'[name="formato"], [name="estado_modo"], [name="exibicao"], [name="estado_percentual_calculado"], [name="historico_valor_calculado"], [name="historico_cores_personalizadas"]'
 		)
 			.forEach((element) => {
 				element.addEventListener('change', () => this.#updateForm());
@@ -97,6 +97,14 @@ window.dynamic_status_cards_metric_edit_form = new class {
 		const exibicao = document.getElementById('exibicao').value;
 		const historico_ativo = exibicao !== '<?= CWidgetFieldMetricList::EXIBICAO_VALOR ?>';
 		const resumo_historico = exibicao === '<?= CWidgetFieldMetricList::EXIBICAO_RESUMO_HISTORICO ?>';
+		const historico_com_valor = [
+			'<?= CWidgetFieldMetricList::EXIBICAO_VALOR_HISTORICO ?>',
+			'<?= CWidgetFieldMetricList::EXIBICAO_VALOR_GRAFICO ?>'
+		].includes(exibicao);
+		const valor_calculado = Number.parseInt(
+			this.#form.querySelector('[name="historico_valor_calculado"]').value,
+			10
+		) === 1;
 		const percentual_calculado = this.#form.querySelector('[name="estado_percentual_calculado"]').checked;
 		const cores_personalizadas = this.#form
 			.querySelector('[name="historico_cores_personalizadas"]').checked;
@@ -112,7 +120,8 @@ window.dynamic_status_cards_metric_edit_form = new class {
 		this.#toggle('.js-estado-valores', estado_modo === '<?= CWidgetFieldMetricList::ESTADO_VALORES ?>');
 		this.#toggle('.js-estado-item-alternativo', !percentual_calculado);
 		this.#toggle('.js-historico', historico_ativo);
-		this.#toggle('.js-historico-resumo', resumo_historico);
+		this.#toggle('.js-historico-com-valor', historico_com_valor);
+		this.#toggle('.js-historico-resumo', resumo_historico || (historico_com_valor && valor_calculado));
 		this.#toggle('.js-historico-visual', historico_ativo && !resumo_historico);
 		this.#toggle('.js-historico-cores', historico_ativo && !resumo_historico && cores_personalizadas);
 	}

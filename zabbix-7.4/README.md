@@ -2,7 +2,7 @@
 
 [Português](#português) · [English](#english)
 
-> Zabbix 7.4 · Módulo 1.17.1 · Período global com limite de segurança · Agregações históricas · Grid responsivo · 66 ícones
+> Zabbix 7.4 · Módulo 1.18.0 · Valor calculado com barra ou gráfico · Período global protegido · Grid responsivo · 66 ícones
 
 ## Português
 
@@ -101,6 +101,8 @@ As linhas de cards ocupam toda a altura fornecida ao widget, evitando a faixa va
 Na janela **Editar métrica**, o campo **Modo de exibição** permite mostrar somente o valor atual, combinar o valor com uma barra ou gráfico histórico, ou mostrar somente a visualização histórica. Nos modos históricos sem valor, a linha atual e seu indicador não são renderizados; também é possível ocultar o nome e o resumo para deixar somente a barra ou gráfico e o eixo temporal.
 
 O período vem sempre do **seletor global de tempo do dashboard**. Ao navegar entre horas, dias ou datas absolutas, todas as visualizações e resumos são recalculados no intervalo escolhido. Relatórios agendados com **Ontem** usam o intervalo de ontem. O eixo mostra início, ponto médio e fim; quando o fim está no presente, mostra **Agora**.
+
+Nos modos **Valor + barra histórica** e **Valor + gráfico histórico**, o campo **Valor exibido acima do histórico** permite manter a última amostra ou exibir o resultado de qualquer cálculo histórico: soma, média, mínimo, máximo, soma/média dos máximos diários ou aumento do contador. O LED continua representando a última amostra; somente o texto numérico acima da visualização é substituído.
 
 A barra usa o histórico numérico nativo do Zabbix e divide o período automaticamente em até 180 blocos. Cada bloco recebe a pior condição observada conforme os limiares ou valores exatos da própria métrica. Quando há um **Item de disponibilidade**, seus valores críticos são exibidos como **Indisponível**; períodos sem amostras ficam como **Sem dados**.
 
@@ -315,6 +317,8 @@ Card rows occupy the entire height assigned to the widget, avoiding an empty str
 In **Edit metric**, **Display mode** can show only the current value, combine it with a historical bar or graph, or show only the historical visualization. Historical-only modes do not render the current value or its indicator; hiding the metric name and summary leaves only the bar or graph and time axis.
 
 The period always follows the dashboard's **global time selector**. Navigating through hours, days, or absolute dates recalculates every visualization and summary for that range. Scheduled reports using **Yesterday** therefore use yesterday's range. The axis displays start, midpoint, and end; when the end is current, it displays **Agora**.
+
+In **Value + historical bar** and **Value + historical graph** modes, **Value displayed above history** can keep the last sample or show any historical calculation: sum, average, minimum, maximum, daily-maximum sum/average, or counter increase. The LED still represents the last sample; only the numeric text above the visualization is replaced.
 
 The bar reads Zabbix's native numeric history and automatically divides the period into at most 180 buckets. Each bucket receives the worst condition detected by the metric's thresholds or exact-value rules. When an **availability item** is configured, its critical values are rendered as **Unavailable**; buckets without samples are rendered as **No data**.
 

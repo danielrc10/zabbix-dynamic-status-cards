@@ -1,5 +1,21 @@
 # Histórico de versões / Changelog
 
+## 1.18.0 — 2026-08-28
+
+### Português
+
+- Permite escolher entre a última amostra e um valor histórico calculado nos modos valor + barra/gráfico.
+- Disponibiliza soma, média, mínimo, máximo, máximos diários e aumento do contador acima da visualização.
+- Mantém Última amostra como padrão para preservar dashboards existentes.
+- Mantém o LED vinculado ao estado da última amostra, independentemente do texto calculado.
+
+### English
+
+- Allows choosing between the last sample and a calculated historical value in value + bar/graph modes.
+- Provides sum, average, minimum, maximum, daily maxima, and counter increase above the visualization.
+- Keeps Last sample as the default to preserve existing dashboards.
+- Keeps the LED tied to the last sample state regardless of the calculated text.
+
 ## 1.16.0 — 2026-08-26
 
 ### Português

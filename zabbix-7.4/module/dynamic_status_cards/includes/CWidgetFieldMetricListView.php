@@ -153,7 +153,13 @@ class CWidgetFieldMetricListView extends CWidgetFieldView {
 		if (($metrica['exibicao'] ?? CWidgetFieldMetricList::EXIBICAO_VALOR)
 				!== CWidgetFieldMetricList::EXIBICAO_VALOR) {
 			$resumo .= ' · período do dashboard';
-			if (($metrica['exibicao'] ?? '') === CWidgetFieldMetricList::EXIBICAO_RESUMO_HISTORICO) {
+			$usa_calculo = ($metrica['exibicao'] ?? '') === CWidgetFieldMetricList::EXIBICAO_RESUMO_HISTORICO
+				|| ((int) ($metrica['historico_valor_calculado'] ?? 0) === 1
+					&& in_array($metrica['exibicao'] ?? '', [
+						CWidgetFieldMetricList::EXIBICAO_VALOR_HISTORICO,
+						CWidgetFieldMetricList::EXIBICAO_VALOR_GRAFICO
+					], true));
+			if ($usa_calculo) {
 				$rotulos = [
 					CWidgetFieldMetricList::AGREGACAO_HISTORICA_SOMA => 'soma das amostras',
 					CWidgetFieldMetricList::AGREGACAO_HISTORICA_MEDIA => 'média das amostras',

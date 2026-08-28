@@ -390,7 +390,21 @@ $grade_formatacao->addItem([
 	))->addClass('js-historico')
 ]);
 
-$rotulo_agregacao_historica = (new CLabel('Cálculo do resumo', 'historico_agregacao'))
+$grade_formatacao->addItem([
+	(new CLabel('Valor exibido acima do histórico', 'historico_valor_calculado'))
+		->addClass('js-historico-com-valor'),
+	(new CFormField(
+		(new CSelect('historico_valor_calculado'))
+			->setId('historico_valor_calculado')
+			->setValue($data['historico_valor_calculado'])
+			->addOptions(CSelect::createOptionsFromArray([
+				0 => 'Última amostra do intervalo',
+				1 => 'Resultado do cálculo selecionado abaixo'
+			]))
+	))->addClass('js-historico-com-valor')
+]);
+
+$rotulo_agregacao_historica = (new CLabel('Cálculo do valor histórico', 'historico_agregacao'))
 	->addClass('js-historico-resumo');
 $rotulo_agregacao_historica->setHint(makeHelpIcon(
 	'Use soma das amostras para eventos incrementais. Para um contador acumulativo, use aumento do contador: '.

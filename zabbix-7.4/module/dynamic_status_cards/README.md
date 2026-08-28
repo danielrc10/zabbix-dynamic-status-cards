@@ -44,6 +44,7 @@ Depois acesse **Administração → Geral → Módulos**, escaneie o diretório 
 - **Limiares numéricos:** permitem escolher se valores maiores ou menores representam pior estado.
 - **Valores exatos:** associam listas de valores aos estados OK, aviso e crítico.
 - **Histórico:** segue o período global do dashboard e mostra o último valor desse intervalo com barra, gráfico ou resumo textual.
+- **Valor calculado com histórico:** nos modos valor + barra/gráfico, substitui opcionalmente a última amostra pelo resultado da soma, média, mínimo, máximo ou agregação diária selecionada.
 - **Eixo histórico:** mostra início, ponto médio e Agora; nome e resumo percentual são opcionais.
 - **Cores históricas:** OK, aviso, crítico, indisponível e sem dados podem herdar a paleta ou ser personalizadas por métrica.
 - **Cores:** OK, aviso, crítico e sem dados são personalizáveis no formulário principal.
@@ -106,6 +107,7 @@ Then go to **Administration → General → Modules**, scan the directory, and e
 - **Numeric thresholds:** support both higher-is-worse and lower-is-worse evaluation.
 - **Exact values:** associate value lists with OK, warning, and critical states.
 - **History:** follows the global dashboard period and displays that range's last value with a bar, graph, or text summary.
+- **Calculated value with history:** value + bar/graph modes can replace the last sample with the selected sum, average, minimum, maximum, or daily aggregation result.
 - **Historical axis:** shows start, temporal midpoint, and Agora; metric name and percentage summary are optional.
 - **Historical colors:** OK, warning, critical, unavailable, and no data can inherit the palette or be customized per metric.
 - **Colors:** OK, warning, critical, and no-data colors are configurable in the main form.
