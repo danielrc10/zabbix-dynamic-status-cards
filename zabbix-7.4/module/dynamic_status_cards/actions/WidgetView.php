@@ -652,6 +652,25 @@ class WidgetView extends CControllerDashboardWidgetView {
 	 */
 	private function consultarExtremosDiarios(array &$grupo): void {
 		$itens = array_values($grupo['itens_extremos_diarios']);
+		$duracao_periodo = max(1, $grupo['fim'] - $grupo['inicio'] + 1);
+
+		// PT-BR: Um intervalo de até um dia civil é indivisível. O dashboard já
+		// entregou os timestamps exatos; recriar a fronteira por outro timezone
+		// poderia transformar "ontem" em duas parcelas e somar parte de hoje.
+		// EN: A range of up to one civil day is indivisible. The dashboard has
+		// already supplied exact timestamps; rebuilding its boundary in another
+		// timezone could split "yesterday" and add a portion of today.
+		if ($duracao_periodo <= SEC_PER_DAY + (3 * SEC_PER_HOUR)) {
+			$this->consultarExtremosNoIntervalo(
+				$grupo,
+				$itens,
+				$grupo['inicio'],
+				$grupo['fim'],
+				'periodo_selecionado'
+			);
+			return;
+		}
+
 		$nome_timezone = CWebUser::$data['timezone'] ?? ZBX_DEFAULT_TIMEZONE;
 		if ($nome_timezone === ZBX_DEFAULT_TIMEZONE) {
 			$nome_timezone = CTimezoneHelper::getSystemTimezone();
@@ -667,27 +686,44 @@ class WidgetView extends CControllerDashboardWidgetView {
 			$fim_consulta = min($grupo['fim'], $proximo_dia->getTimestamp() - 1);
 			$dia = $inicio_dia->format('Y-m-d');
 
-			if ($inicio_consulta <= $fim_consulta) {
-				foreach ([
-					AGGREGATE_MAX => 'maximos_diarios',
-					AGGREGATE_MIN => 'minimos_diarios'
-				] as $funcao => $destino) {
-					$resultado = Manager::History()->getAggregatedValues(
-						$itens,
-						$funcao,
-						$inicio_consulta,
-						$fim_consulta
-					) ?? [];
-
-					foreach ($resultado as $itemid => $ponto) {
-						if (isset($ponto['value']) && is_numeric($ponto['value'])) {
-							$grupo[$destino][$itemid][$dia] = (float) $ponto['value'];
-						}
-					}
-				}
-			}
+			$this->consultarExtremosNoIntervalo(
+				$grupo,
+				$itens,
+				$inicio_consulta,
+				$fim_consulta,
+				$dia
+			);
 
 			$inicio_dia = $proximo_dia;
+		}
+	}
+
+	/**
+	 * PT-BR: Consulta mínimo e máximo sem ampliar nem reinterpretar o intervalo.
+	 * EN: Queries minimum and maximum without expanding or reinterpreting the range.
+	 */
+	private function consultarExtremosNoIntervalo(array &$grupo, array $itens, int $inicio, int $fim,
+			string $chave): void {
+		if ($inicio > $fim) {
+			return;
+		}
+
+		foreach ([
+			AGGREGATE_MAX => 'maximos_diarios',
+			AGGREGATE_MIN => 'minimos_diarios'
+		] as $funcao => $destino) {
+			$resultado = Manager::History()->getAggregatedValues(
+				$itens,
+				$funcao,
+				$inicio,
+				$fim
+			) ?? [];
+
+			foreach ($resultado as $itemid => $ponto) {
+				if (isset($ponto['value']) && is_numeric($ponto['value'])) {
+					$grupo[$destino][$itemid][$chave] = (float) $ponto['value'];
+				}
+			}
 		}
 	}
 
