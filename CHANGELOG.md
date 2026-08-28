@@ -1,5 +1,21 @@
 # Histórico de versões / Changelog
 
+## 1.18.3 — 2026-08-28
+
+### Português
+
+- Trata qualquer intervalo do dashboard de até um dia civil como uma única parcela indivisível.
+- Consulta o máximo e o mínimo diretamente entre os timestamps exatos recebidos do dashboard.
+- Impede definitivamente que o resumo de “ontem” seja separado em duas datas e some uma parte de hoje.
+- Mantém a separação em dias civis somente para períodos realmente maiores que um dia.
+
+### English
+
+- Treats any dashboard range of up to one civil day as one indivisible slice.
+- Queries maximum and minimum directly between the exact timestamps received from the dashboard.
+- Definitively prevents a “yesterday” summary from being split into two dates and adding part of today.
+- Keeps calendar-day splitting only for ranges that are actually longer than one day.
+
 ## 1.18.2 — 2026-08-28
 
 ### Português
