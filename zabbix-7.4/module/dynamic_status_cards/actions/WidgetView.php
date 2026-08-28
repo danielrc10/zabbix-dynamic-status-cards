@@ -16,6 +16,10 @@ use API,
 	CControllerDashboardWidgetView,
 	CControllerResponseData,
 	CMacrosResolverHelper,
+	CTimezoneHelper,
+	CWebUser,
+	DateTimeImmutable,
+	DateTimeZone,
 	Manager;
 
 use Modules\DynamicStatusCards\Includes\{
@@ -648,17 +652,20 @@ class WidgetView extends CControllerDashboardWidgetView {
 	 */
 	private function consultarExtremosDiarios(array &$grupo): void {
 		$itens = array_values($grupo['itens_extremos_diarios']);
-		$inicio_dia = strtotime('today', $grupo['inicio']);
-		$inicio_dia = $inicio_dia !== false ? $inicio_dia : $grupo['inicio'];
+		$nome_timezone = CWebUser::$data['timezone'] ?? ZBX_DEFAULT_TIMEZONE;
+		if ($nome_timezone === ZBX_DEFAULT_TIMEZONE) {
+			$nome_timezone = CTimezoneHelper::getSystemTimezone();
+		}
+		$timezone = new DateTimeZone($nome_timezone);
+		$inicio_dia = (new DateTimeImmutable('@'.$grupo['inicio']))
+			->setTimezone($timezone)
+			->setTime(0, 0, 0);
 
-		while ($inicio_dia <= $grupo['fim']) {
-			$proximo_dia = strtotime('+1 day', $inicio_dia);
-			$proximo_dia = $proximo_dia !== false && $proximo_dia > $inicio_dia
-				? $proximo_dia
-				: $inicio_dia + SEC_PER_DAY;
-			$inicio_consulta = max($grupo['inicio'], $inicio_dia);
-			$fim_consulta = min($grupo['fim'], $proximo_dia - 1);
-			$dia = zbx_date2str('Y-m-d', $inicio_dia);
+		while ($inicio_dia->getTimestamp() <= $grupo['fim']) {
+			$proximo_dia = $inicio_dia->modify('+1 day');
+			$inicio_consulta = max($grupo['inicio'], $inicio_dia->getTimestamp());
+			$fim_consulta = min($grupo['fim'], $proximo_dia->getTimestamp() - 1);
+			$dia = $inicio_dia->format('Y-m-d');
 
 			if ($inicio_consulta <= $fim_consulta) {
 				foreach ([

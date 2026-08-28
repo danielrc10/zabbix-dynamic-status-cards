@@ -1,5 +1,21 @@
 # Histórico de versões / Changelog
 
+## 1.18.2 — 2026-08-28
+
+### Português
+
+- Usa explicitamente o fuso horário do usuário do frontend Zabbix ao separar dias civis.
+- Resolve o fuso `system` pela configuração global do Zabbix.
+- Substitui as fronteiras dependentes do timezone padrão do PHP por `DateTimeImmutable` com timezone explícito.
+- Impede que um único dia de `America/Sao_Paulo` seja dividido e somado como duas datas UTC.
+
+### English
+
+- Explicitly uses the Zabbix frontend user's timezone when splitting calendar days.
+- Resolves the `system` timezone through the global Zabbix configuration.
+- Replaces PHP-default-timezone boundaries with timezone-aware `DateTimeImmutable` values.
+- Prevents a single `America/Sao_Paulo` day from being split and summed as two UTC dates.
+
 ## 1.18.1 — 2026-08-28
 
 ### Português
