@@ -625,40 +625,7 @@ class WidgetView extends CControllerDashboardWidgetView {
 			}
 
 			if ($grupo['itens_extremos_diarios']) {
-				$intervalo = $this->obterIntervaloMaximosDiarios($grupo['inicio'], $grupo['fim']);
-				foreach ([
-					AGGREGATE_MAX => 'maximos_diarios',
-					AGGREGATE_MIN => 'minimos_diarios'
-				] as $funcao => $destino) {
-					$resultado_diario = Manager::History()->getAggregationByInterval(
-						array_values($grupo['itens_extremos_diarios']),
-						$grupo['inicio'],
-						$grupo['fim'],
-						$funcao,
-						$intervalo
-					);
-
-					foreach ($resultado_diario as $itemid => $dados_item) {
-						foreach ($dados_item['data'] ?? [] as $ponto) {
-							if (!isset($ponto['value']) || !is_numeric($ponto['value'])) {
-								continue;
-							}
-
-							$clock = max($grupo['inicio'], (int) ($ponto['tick'] ?? $grupo['inicio']));
-							$dia = zbx_date2str('Y-m-d', $clock);
-							$valor = (float) $ponto['value'];
-							if (!isset($grupo[$destino][$itemid][$dia])) {
-								$grupo[$destino][$itemid][$dia] = $valor;
-							}
-							elseif ($funcao === AGGREGATE_MAX) {
-								$grupo[$destino][$itemid][$dia] = max($grupo[$destino][$itemid][$dia], $valor);
-							}
-							else {
-								$grupo[$destino][$itemid][$dia] = min($grupo[$destino][$itemid][$dia], $valor);
-							}
-						}
-					}
-				}
+				$this->consultarExtremosDiarios($grupo);
 			}
 		}
 
@@ -674,29 +641,47 @@ class WidgetView extends CControllerDashboardWidgetView {
 	}
 
 	/**
-	 * PT-BR: Alinha os blocos aos quartos de hora ou às horas locais, inclusive em fusos com meia hora.
-	 * EN: Aligns buckets to local quarter-hours or hours, including half-hour time zones.
+	 * PT-BR: Consulta mínimo e máximo separadamente em cada dia civil, sempre
+	 * limitado pela interseção exata com o período global do dashboard.
+	 * EN: Queries minimum and maximum separately for each calendar day, always
+	 * constrained to the exact intersection with the dashboard global range.
 	 */
-	private function obterIntervaloMaximosDiarios(int $inicio, int $fim): int {
-		$intervalo = 3600;
-		foreach ([$inicio, $fim] as $clock) {
-			$deslocamento = abs((int) date('Z', $clock));
-			if ($deslocamento > 0) {
-				$intervalo = $this->maximoDivisorComum($intervalo, $deslocamento);
+	private function consultarExtremosDiarios(array &$grupo): void {
+		$itens = array_values($grupo['itens_extremos_diarios']);
+		$inicio_dia = strtotime('today', $grupo['inicio']);
+		$inicio_dia = $inicio_dia !== false ? $inicio_dia : $grupo['inicio'];
+
+		while ($inicio_dia <= $grupo['fim']) {
+			$proximo_dia = strtotime('+1 day', $inicio_dia);
+			$proximo_dia = $proximo_dia !== false && $proximo_dia > $inicio_dia
+				? $proximo_dia
+				: $inicio_dia + SEC_PER_DAY;
+			$inicio_consulta = max($grupo['inicio'], $inicio_dia);
+			$fim_consulta = min($grupo['fim'], $proximo_dia - 1);
+			$dia = zbx_date2str('Y-m-d', $inicio_dia);
+
+			if ($inicio_consulta <= $fim_consulta) {
+				foreach ([
+					AGGREGATE_MAX => 'maximos_diarios',
+					AGGREGATE_MIN => 'minimos_diarios'
+				] as $funcao => $destino) {
+					$resultado = Manager::History()->getAggregatedValues(
+						$itens,
+						$funcao,
+						$inicio_consulta,
+						$fim_consulta
+					) ?? [];
+
+					foreach ($resultado as $itemid => $ponto) {
+						if (isset($ponto['value']) && is_numeric($ponto['value'])) {
+							$grupo[$destino][$itemid][$dia] = (float) $ponto['value'];
+						}
+					}
+				}
 			}
+
+			$inicio_dia = $proximo_dia;
 		}
-
-		return max(900, $intervalo);
-	}
-
-	private function maximoDivisorComum(int $a, int $b): int {
-		while ($b !== 0) {
-			$resto = $a % $b;
-			$a = $b;
-			$b = $resto;
-		}
-
-		return max(1, $a);
 	}
 
 	private function itemSuportaHistorico(array $item): bool {

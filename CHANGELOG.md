@@ -1,5 +1,21 @@
 # Histórico de versões / Changelog
 
+## 1.18.1 — 2026-08-28
+
+### Português
+
+- Corrige o vazamento de valores do dia atual em resumos filtrados exclusivamente para ontem.
+- Calcula mínimo e máximo em intervalos absolutos separados para cada dia civil.
+- Intersecta cada dia com o início e o fim exatos recebidos do seletor global do dashboard.
+- Elimina o reagrupamento posterior de blocos horários, que podia atravessar limites diários.
+
+### English
+
+- Fixes current-day values leaking into summaries filtered exclusively to yesterday.
+- Calculates minimum and maximum in separate absolute ranges for each calendar day.
+- Intersects every day with the exact start and end received from the dashboard global selector.
+- Removes post-processing of hourly buckets that could cross calendar-day boundaries.
+
 ## 1.18.0 — 2026-08-28
 
 ### Português
