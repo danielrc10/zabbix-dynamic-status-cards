@@ -2,7 +2,7 @@
 
 [Português](#português) · [English](#english)
 
-> Zabbix 7.4 · Módulo 1.18.1 · Limites diários exatos · Valor calculado com barra ou gráfico · Período global protegido · 66 ícones
+> Zabbix 7.4 · Módulo 1.18.2 · Dias no fuso do usuário · Valor calculado com barra ou gráfico · Período global protegido · 66 ícones
 
 ## Português
 
