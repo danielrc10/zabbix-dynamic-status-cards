@@ -1,0 +1,26 @@
+name: Validate module
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Structural validation
+        run: ruby zabbix-7.4/tools/validate_module.rb
+      - name: PHP syntax
+        run: find zabbix-7.4/module/dynamic_status_cards -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: JavaScript syntax
+        run: find zabbix-7.4/module/dynamic_status_cards -name '*.js' -print0 | xargs -0 -n1 node --check
+      - name: Installer syntax
+        run: bash -n zabbix-7.4/scripts/install_dynamic_status_cards.sh
+      - name: Verify package
+        run: |
+          unzip -t zabbix-7.4/dist/dynamic_status_cards.zip
+          sha256sum --check SHA256SUMS

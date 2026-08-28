@@ -19,6 +19,13 @@ Widget genérico que agrupa itens por uma tag e monta automaticamente um card pa
 
 O instalador altera somente o diretório de módulos do **frontend Zabbix**. Ele valida os arquivos PHP, cria backup da versão anterior e não modifica banco de dados, Server, Proxy, Agent ou hosts.
 
+Primeira instalação pelo repositório independente:
+
+```bash
+git clone https://github.com/danielrc10/zabbix-dynamic-status-cards.git
+cd zabbix-dynamic-status-cards/zabbix-7.4
+```
+
 Revise o script e simule primeiro:
 
 ```bash
@@ -247,6 +254,13 @@ Generic widget that groups items by a tag and automatically creates one card for
 ### Installation
 
 The installer changes only the **Zabbix frontend** modules directory. It validates PHP files, backs up the previous version, and does not modify the database, Server, Proxy, Agent, or monitored hosts.
+
+First installation from the independent repository:
+
+```bash
+git clone https://github.com/danielrc10/zabbix-dynamic-status-cards.git
+cd zabbix-dynamic-status-cards/zabbix-7.4
+```
 
 Review the script and run a dry run first:
 
