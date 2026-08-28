@@ -89,6 +89,7 @@ class CWidgetFieldMetricList extends CWidgetField {
 			'estado_padrao' => 'neutro',
 			'exibicao' => self::EXIBICAO_VALOR,
 			'historico_dias' => 1,
+			'historico_valor_calculado' => 0,
 			'historico_agregacao' => self::AGREGACAO_HISTORICA_SOMA,
 			'historico_mostrar_percentual' => 0,
 			'historico_cores_personalizadas' => 0,
@@ -227,6 +228,7 @@ class CWidgetFieldMetricList extends CWidgetField {
 			'estado_padrao' => ZBX_WIDGET_FIELD_TYPE_STR,
 			'exibicao' => ZBX_WIDGET_FIELD_TYPE_STR,
 			'historico_dias' => ZBX_WIDGET_FIELD_TYPE_INT32,
+			'historico_valor_calculado' => ZBX_WIDGET_FIELD_TYPE_INT32,
 			'historico_agregacao' => ZBX_WIDGET_FIELD_TYPE_STR,
 			'historico_mostrar_percentual' => ZBX_WIDGET_FIELD_TYPE_INT32,
 			'historico_cores_personalizadas' => ZBX_WIDGET_FIELD_TYPE_INT32,
@@ -340,6 +342,7 @@ class CWidgetFieldMetricList extends CWidgetField {
 				self::EXIBICAO_RESUMO_HISTORICO
 			]), 'default' => self::EXIBICAO_VALOR],
 			'historico_dias' => ['type' => API_INT32, 'in' => '1:90', 'default' => 1],
+			'historico_valor_calculado' => ['type' => API_INT32, 'in' => '0,1', 'default' => 0],
 			'historico_agregacao' => ['type' => API_STRING_UTF8, 'in' => implode(',', [
 				self::AGREGACAO_HISTORICA_SOMA,
 				self::AGREGACAO_HISTORICA_MEDIA,
@@ -445,6 +448,7 @@ class CWidgetFieldMetricList extends CWidgetField {
 		$metrica['separador_complemento'] = (string) ($metrica['separador_complemento'] ?? ' / ');
 		$metrica['estado_percentual_calculado'] = (int) ($metrica['estado_percentual_calculado'] ?? 0);
 		$metrica['historico_dias'] = (int) ($metrica['historico_dias'] ?? 1);
+		$metrica['historico_valor_calculado'] = (int) ($metrica['historico_valor_calculado'] ?? 0);
 		$metrica['historico_agregacao'] = (string) (
 			$metrica['historico_agregacao'] ?? self::AGREGACAO_HISTORICA_SOMA
 		);

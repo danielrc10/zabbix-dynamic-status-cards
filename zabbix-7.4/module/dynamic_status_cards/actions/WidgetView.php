@@ -715,15 +715,25 @@ class WidgetView extends CControllerDashboardWidgetView {
 		$pontos_valor = $item_valor !== null
 			? ($grupo['pontos'][$item_valor['itemid']] ?? [])
 			: [];
-		if (($configuracao['exibicao'] ?? '') === CWidgetFieldMetricList::EXIBICAO_RESUMO_HISTORICO) {
+		$exibicao = $configuracao['exibicao'] ?? CWidgetFieldMetricList::EXIBICAO_VALOR;
+		$exibicao_com_valor = in_array($exibicao, [
+			CWidgetFieldMetricList::EXIBICAO_VALOR_HISTORICO,
+			CWidgetFieldMetricList::EXIBICAO_VALOR_GRAFICO
+		], true);
+		$usar_valor_calculado = $exibicao === CWidgetFieldMetricList::EXIBICAO_RESUMO_HISTORICO
+			|| ($exibicao_com_valor && (int) ($configuracao['historico_valor_calculado'] ?? 0) === 1);
+		$resumo_texto = $usar_valor_calculado
+			? $this->calcularResumoHistorico(
+				$pontos_valor,
+				$item_valor !== null ? ($grupo['maximos_diarios'][$item_valor['itemid']] ?? []) : [],
+				$item_valor !== null ? ($grupo['minimos_diarios'][$item_valor['itemid']] ?? []) : [],
+				$item_valor,
+				$configuracao
+			)
+			: null;
+		if ($exibicao === CWidgetFieldMetricList::EXIBICAO_RESUMO_HISTORICO) {
 			return [
-				'resumo_texto' => $this->calcularResumoHistorico(
-					$pontos_valor,
-					$item_valor !== null ? ($grupo['maximos_diarios'][$item_valor['itemid']] ?? []) : [],
-					$item_valor !== null ? ($grupo['minimos_diarios'][$item_valor['itemid']] ?? []) : [],
-					$item_valor,
-					$configuracao
-				)
+				'resumo_texto' => $resumo_texto
 			];
 		}
 
@@ -849,6 +859,7 @@ class WidgetView extends CControllerDashboardWidgetView {
 		$meio = $grupo['inicio'] + (int) floor($duracao / 2);
 
 		return [
+			'resumo_texto' => $resumo_texto,
 			'segmentos' => $segmentos,
 			'grafico' => $this->montarGraficoHistorico(
 				$pontos_grafico,
@@ -1278,6 +1289,13 @@ class WidgetView extends CControllerDashboardWidgetView {
 					);
 				}
 				$resumo_historico = $linha['exibicao'] === CWidgetFieldMetricList::EXIBICAO_RESUMO_HISTORICO;
+				$valor_historico_calculado = in_array($linha['exibicao'], [
+					CWidgetFieldMetricList::EXIBICAO_VALOR_HISTORICO,
+					CWidgetFieldMetricList::EXIBICAO_VALOR_GRAFICO
+				], true) && (int) ($configuracao['historico_valor_calculado'] ?? 0) === 1;
+				if ($valor_historico_calculado) {
+					$linha['valor'] = $linha['historico']['resumo_texto'] ?? 'Sem dados';
+				}
 				if ($resumo_historico) {
 					$linha['valor'] = $linha['historico']['resumo_texto'] ?? 'Sem dados';
 					$linha['estado'] = 'neutro';

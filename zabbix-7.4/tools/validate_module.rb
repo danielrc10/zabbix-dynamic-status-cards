@@ -49,7 +49,7 @@ check(manifest['manifest_version'] == 2.0, 'manifest_version must be 2.0')
 check(manifest['id'] == 'dynamic_status_cards', 'unexpected module ID')
 check(manifest['type'] == 'widget', 'module type must be widget')
 check(manifest['namespace'] == 'DynamicStatusCards', 'unexpected module namespace')
-check(manifest['version'] == '1.17.1', 'unexpected module version')
+check(manifest['version'] == '1.18.0', 'unexpected module version')
 check(manifest.dig('widget', 'js_class') == 'CWidgetDynamicStatusCards', 'responsive widget JS class is missing')
 check(manifest.dig('widget', 'in', 'groupids', 'type') == '_hostgroupids', 'dashboard host-group input is missing')
 check(manifest.dig('widget', 'in', 'hostids', 'type') == '_hostids', 'dashboard host input is missing')
@@ -133,6 +133,10 @@ check(combined_php.include?("AGREGACAO_HISTORICA_MEDIA_MAXIMOS_DIARIOS"),
   'historical daily-maximum average is missing')
 check(combined_php.include?("AGREGACAO_HISTORICA_AUMENTO_CONTADOR"),
   'counter increase over the dashboard interval is missing')
+check(combined_php.include?("historico_valor_calculado"),
+  'calculated value above historical visualization is missing')
+check(combined_php.include?("Valor exibido acima do histórico"),
+  'calculated historical value selector is missing')
 check(combined_php.include?("AGGREGATE_MIN"), 'daily historical minimum query is missing')
 check(combined_php.include?("calcularResumoHistorico"), 'historical summary calculation is missing')
 check(combined_php.include?("getAggregationByInterval"), 'daily historical aggregation query is missing')

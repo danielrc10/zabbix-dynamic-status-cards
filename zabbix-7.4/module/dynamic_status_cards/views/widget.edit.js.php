@@ -377,7 +377,10 @@ window.widget_form = new class extends CWidgetForm {
 		}
 		if ((data.exibicao ?? 'valor') !== 'valor') {
 			summary += ' · período do dashboard';
-			if (data.exibicao === 'resumo_historico') {
+			const uses_calculation = data.exibicao === 'resumo_historico'
+				|| (Number(data.historico_valor_calculado ?? 0) === 1
+					&& ['valor_historico', 'valor_grafico'].includes(data.exibicao));
+			if (uses_calculation) {
 				const aggregation_labels = {
 					soma: 'soma das amostras',
 					media: 'média das amostras',
