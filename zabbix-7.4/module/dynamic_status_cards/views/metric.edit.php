@@ -407,8 +407,8 @@ $grade_formatacao->addItem([
 $rotulo_agregacao_historica = (new CLabel('Cálculo do valor histórico', 'historico_agregacao'))
 	->addClass('js-historico-resumo');
 $rotulo_agregacao_historica->setHint(makeHelpIcon(
-	'Use soma das amostras para eventos incrementais. Para um contador acumulativo, use aumento do contador: '.
-	'o widget calcula máximo menos mínimo por dia e soma os dias, respeitando o intervalo do dashboard.'
+	'Use soma das amostras para eventos incrementais. Para um contador diário como “ligações hoje”, use soma dos '.
+	'últimos valores de cada dia. Maior/menor e primeiro/último possuem opções simétricas de soma e média.'
 ));
 $grade_formatacao->addItem([
 	$rotulo_agregacao_historica,
@@ -425,6 +425,18 @@ $grade_formatacao->addItem([
 					=> 'Soma dos maiores valores de cada dia',
 				CWidgetFieldMetricList::AGREGACAO_HISTORICA_MEDIA_MAXIMOS_DIARIOS
 					=> 'Média dos maiores valores de cada dia',
+				CWidgetFieldMetricList::AGREGACAO_HISTORICA_SOMA_MINIMOS_DIARIOS
+					=> 'Soma dos menores valores de cada dia',
+				CWidgetFieldMetricList::AGREGACAO_HISTORICA_MEDIA_MINIMOS_DIARIOS
+					=> 'Média dos menores valores de cada dia',
+				CWidgetFieldMetricList::AGREGACAO_HISTORICA_SOMA_ULTIMOS_DIARIOS
+					=> 'Soma dos últimos valores de cada dia',
+				CWidgetFieldMetricList::AGREGACAO_HISTORICA_MEDIA_ULTIMOS_DIARIOS
+					=> 'Média dos últimos valores de cada dia',
+				CWidgetFieldMetricList::AGREGACAO_HISTORICA_SOMA_PRIMEIROS_DIARIOS
+					=> 'Soma dos primeiros valores de cada dia',
+				CWidgetFieldMetricList::AGREGACAO_HISTORICA_MEDIA_PRIMEIROS_DIARIOS
+					=> 'Média dos primeiros valores de cada dia',
 				CWidgetFieldMetricList::AGREGACAO_HISTORICA_AUMENTO_CONTADOR
 					=> 'Aumento do contador no intervalo'
 			]))

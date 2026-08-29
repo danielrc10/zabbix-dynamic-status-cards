@@ -40,6 +40,12 @@ class CWidgetFieldMetricList extends CWidgetField {
 	public const AGREGACAO_HISTORICA_MAXIMO = 'maximo';
 	public const AGREGACAO_HISTORICA_SOMA_MAXIMOS_DIARIOS = 'soma_maximos_diarios';
 	public const AGREGACAO_HISTORICA_MEDIA_MAXIMOS_DIARIOS = 'media_maximos_diarios';
+	public const AGREGACAO_HISTORICA_SOMA_MINIMOS_DIARIOS = 'soma_minimos_diarios';
+	public const AGREGACAO_HISTORICA_MEDIA_MINIMOS_DIARIOS = 'media_minimos_diarios';
+	public const AGREGACAO_HISTORICA_SOMA_ULTIMOS_DIARIOS = 'soma_ultimos_diarios';
+	public const AGREGACAO_HISTORICA_MEDIA_ULTIMOS_DIARIOS = 'media_ultimos_diarios';
+	public const AGREGACAO_HISTORICA_SOMA_PRIMEIROS_DIARIOS = 'soma_primeiros_diarios';
+	public const AGREGACAO_HISTORICA_MEDIA_PRIMEIROS_DIARIOS = 'media_primeiros_diarios';
 	public const AGREGACAO_HISTORICA_AUMENTO_CONTADOR = 'aumento_contador';
 
 	public const ESTADO_NENHUM = 'nenhum';
@@ -350,6 +356,12 @@ class CWidgetFieldMetricList extends CWidgetField {
 				self::AGREGACAO_HISTORICA_MAXIMO,
 				self::AGREGACAO_HISTORICA_SOMA_MAXIMOS_DIARIOS,
 				self::AGREGACAO_HISTORICA_MEDIA_MAXIMOS_DIARIOS,
+				self::AGREGACAO_HISTORICA_SOMA_MINIMOS_DIARIOS,
+				self::AGREGACAO_HISTORICA_MEDIA_MINIMOS_DIARIOS,
+				self::AGREGACAO_HISTORICA_SOMA_ULTIMOS_DIARIOS,
+				self::AGREGACAO_HISTORICA_MEDIA_ULTIMOS_DIARIOS,
+				self::AGREGACAO_HISTORICA_SOMA_PRIMEIROS_DIARIOS,
+				self::AGREGACAO_HISTORICA_MEDIA_PRIMEIROS_DIARIOS,
 				self::AGREGACAO_HISTORICA_AUMENTO_CONTADOR
 			]), 'default' => self::AGREGACAO_HISTORICA_SOMA],
 			'historico_mostrar_percentual' => ['type' => API_INT32, 'in' => '0,1', 'default' => 0],

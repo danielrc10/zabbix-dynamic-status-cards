@@ -565,9 +565,16 @@ class WidgetView extends CControllerDashboardWidgetView {
 			'blocos' => $this->obterQuantidadeBlocosHistoricos($duracao),
 			'itens' => [],
 			'pontos' => [],
-			'itens_extremos_diarios' => [],
+			'itens_diarios' => [
+				'maximos_diarios' => [],
+				'minimos_diarios' => [],
+				'ultimos_diarios' => [],
+				'primeiros_diarios' => []
+			],
 			'maximos_diarios' => [],
-			'minimos_diarios' => []
+			'minimos_diarios' => [],
+			'ultimos_diarios' => [],
+			'primeiros_diarios' => []
 		];
 
 		foreach ($cards as $card) {
@@ -591,15 +598,40 @@ class WidgetView extends CControllerDashboardWidgetView {
 				$item_bloqueio = $card['itens_bloqueio'][$indice] ?? null;
 				$agregacao = $configuracao['historico_agregacao']
 					?? CWidgetFieldMetricList::AGREGACAO_HISTORICA_SOMA;
-				if ($item_valor !== null
-						&& $this->itemSuportaHistorico($item_valor)
-						&& in_array($agregacao, [
-							CWidgetFieldMetricList::AGREGACAO_HISTORICA_SOMA_MAXIMOS_DIARIOS,
-							CWidgetFieldMetricList::AGREGACAO_HISTORICA_MEDIA_MAXIMOS_DIARIOS,
-							CWidgetFieldMetricList::AGREGACAO_HISTORICA_AUMENTO_CONTADOR
-						], true)) {
+				if ($item_valor !== null && $this->itemSuportaHistorico($item_valor)) {
 					$item_valor['source'] = 'history';
-					$grupo['itens_extremos_diarios'][$item_valor['itemid']] = $item_valor;
+					$destinos_diarios = [];
+					if (in_array($agregacao, [
+						CWidgetFieldMetricList::AGREGACAO_HISTORICA_MAXIMO,
+						CWidgetFieldMetricList::AGREGACAO_HISTORICA_SOMA_MAXIMOS_DIARIOS,
+						CWidgetFieldMetricList::AGREGACAO_HISTORICA_MEDIA_MAXIMOS_DIARIOS,
+						CWidgetFieldMetricList::AGREGACAO_HISTORICA_AUMENTO_CONTADOR
+					], true)) {
+						$destinos_diarios[] = 'maximos_diarios';
+					}
+					if (in_array($agregacao, [
+						CWidgetFieldMetricList::AGREGACAO_HISTORICA_MINIMO,
+						CWidgetFieldMetricList::AGREGACAO_HISTORICA_SOMA_MINIMOS_DIARIOS,
+						CWidgetFieldMetricList::AGREGACAO_HISTORICA_MEDIA_MINIMOS_DIARIOS,
+						CWidgetFieldMetricList::AGREGACAO_HISTORICA_AUMENTO_CONTADOR
+					], true)) {
+						$destinos_diarios[] = 'minimos_diarios';
+					}
+					if (in_array($agregacao, [
+						CWidgetFieldMetricList::AGREGACAO_HISTORICA_SOMA_ULTIMOS_DIARIOS,
+						CWidgetFieldMetricList::AGREGACAO_HISTORICA_MEDIA_ULTIMOS_DIARIOS
+					], true)) {
+						$destinos_diarios[] = 'ultimos_diarios';
+					}
+					if (in_array($agregacao, [
+						CWidgetFieldMetricList::AGREGACAO_HISTORICA_SOMA_PRIMEIROS_DIARIOS,
+						CWidgetFieldMetricList::AGREGACAO_HISTORICA_MEDIA_PRIMEIROS_DIARIOS
+					], true)) {
+						$destinos_diarios[] = 'primeiros_diarios';
+					}
+					foreach ($destinos_diarios as $destino_diario) {
+						$grupo['itens_diarios'][$destino_diario][$item_valor['itemid']] = $item_valor;
+					}
 				}
 				foreach ([$item_valor, $item_estado, $item_complemento, $item_bloqueio] as $item) {
 					if ($item === null || !$this->itemSuportaHistorico($item)) {
@@ -628,7 +660,7 @@ class WidgetView extends CControllerDashboardWidgetView {
 				}
 			}
 
-			if ($grupo['itens_extremos_diarios']) {
+			if (array_filter($grupo['itens_diarios'])) {
 				$this->consultarExtremosDiarios($grupo);
 			}
 		}
@@ -645,13 +677,12 @@ class WidgetView extends CControllerDashboardWidgetView {
 	}
 
 	/**
-	 * PT-BR: Consulta mínimo e máximo separadamente em cada dia civil, sempre
+	 * PT-BR: Consulta somente as funções necessárias separadamente em cada dia civil, sempre
 	 * limitado pela interseção exata com o período global do dashboard.
-	 * EN: Queries minimum and maximum separately for each calendar day, always
+	 * EN: Queries only the required functions separately for each calendar day, always
 	 * constrained to the exact intersection with the dashboard global range.
 	 */
 	private function consultarExtremosDiarios(array &$grupo): void {
-		$itens = array_values($grupo['itens_extremos_diarios']);
 		$duracao_periodo = max(1, $grupo['fim'] - $grupo['inicio'] + 1);
 
 		// PT-BR: Um intervalo de até um dia civil é indivisível. O dashboard já
@@ -663,7 +694,6 @@ class WidgetView extends CControllerDashboardWidgetView {
 		if ($duracao_periodo <= SEC_PER_DAY + (3 * SEC_PER_HOUR)) {
 			$this->consultarExtremosNoIntervalo(
 				$grupo,
-				$itens,
 				$grupo['inicio'],
 				$grupo['fim'],
 				'periodo_selecionado'
@@ -688,7 +718,6 @@ class WidgetView extends CControllerDashboardWidgetView {
 
 			$this->consultarExtremosNoIntervalo(
 				$grupo,
-				$itens,
 				$inicio_consulta,
 				$fim_consulta,
 				$dia
@@ -699,19 +728,24 @@ class WidgetView extends CControllerDashboardWidgetView {
 	}
 
 	/**
-	 * PT-BR: Consulta mínimo e máximo sem ampliar nem reinterpretar o intervalo.
-	 * EN: Queries minimum and maximum without expanding or reinterpreting the range.
+	 * PT-BR: Consulta os agregados necessários sem ampliar nem reinterpretar o intervalo.
+	 * EN: Queries the required aggregates without expanding or reinterpreting the range.
 	 */
-	private function consultarExtremosNoIntervalo(array &$grupo, array $itens, int $inicio, int $fim,
-			string $chave): void {
+	private function consultarExtremosNoIntervalo(array &$grupo, int $inicio, int $fim, string $chave): void {
 		if ($inicio > $fim) {
 			return;
 		}
 
 		foreach ([
 			AGGREGATE_MAX => 'maximos_diarios',
-			AGGREGATE_MIN => 'minimos_diarios'
+			AGGREGATE_MIN => 'minimos_diarios',
+			AGGREGATE_LAST => 'ultimos_diarios',
+			AGGREGATE_FIRST => 'primeiros_diarios'
 		] as $funcao => $destino) {
+			$itens = array_values($grupo['itens_diarios'][$destino] ?? []);
+			if (!$itens) {
+				continue;
+			}
 			$resultado = Manager::History()->getAggregatedValues(
 				$itens,
 				$funcao,
@@ -755,6 +789,8 @@ class WidgetView extends CControllerDashboardWidgetView {
 				$pontos_valor,
 				$item_valor !== null ? ($grupo['maximos_diarios'][$item_valor['itemid']] ?? []) : [],
 				$item_valor !== null ? ($grupo['minimos_diarios'][$item_valor['itemid']] ?? []) : [],
+				$item_valor !== null ? ($grupo['ultimos_diarios'][$item_valor['itemid']] ?? []) : [],
+				$item_valor !== null ? ($grupo['primeiros_diarios'][$item_valor['itemid']] ?? []) : [],
 				$item_valor,
 				$configuracao
 			)
@@ -903,11 +939,11 @@ class WidgetView extends CControllerDashboardWidgetView {
 	}
 
 	/**
-	 * PT-BR: Calcula o resumo escolhido reutilizando blocos compactos e máximos diários.
-	 * EN: Calculates the selected summary from compact buckets and daily maxima.
+	 * PT-BR: Calcula o resumo escolhido reutilizando blocos compactos e agregados diários exatos.
+	 * EN: Calculates the selected summary from compact buckets and exact daily aggregates.
 	 */
-	private function calcularResumoHistorico(array $pontos, array $maximos_diarios, array $minimos_diarios, ?array $item,
-			array $configuracao): string {
+	private function calcularResumoHistorico(array $pontos, array $maximos_diarios, array $minimos_diarios,
+			array $ultimos_diarios, array $primeiros_diarios, ?array $item, array $configuracao): string {
 		if ($item === null) {
 			return 'Sem dados';
 		}
@@ -940,11 +976,11 @@ class WidgetView extends CControllerDashboardWidgetView {
 				break;
 
 			case CWidgetFieldMetricList::AGREGACAO_HISTORICA_MINIMO:
-				$valor = $minimo;
+				$valor = $minimos_diarios ? min($minimos_diarios) : $minimo;
 				break;
 
 			case CWidgetFieldMetricList::AGREGACAO_HISTORICA_MAXIMO:
-				$valor = $maximo;
+				$valor = $maximos_diarios ? max($maximos_diarios) : $maximo;
 				break;
 
 			case CWidgetFieldMetricList::AGREGACAO_HISTORICA_SOMA_MAXIMOS_DIARIOS:
@@ -953,6 +989,30 @@ class WidgetView extends CControllerDashboardWidgetView {
 
 			case CWidgetFieldMetricList::AGREGACAO_HISTORICA_MEDIA_MAXIMOS_DIARIOS:
 				$valor = $maximos_diarios ? array_sum($maximos_diarios) / count($maximos_diarios) : null;
+				break;
+
+			case CWidgetFieldMetricList::AGREGACAO_HISTORICA_SOMA_MINIMOS_DIARIOS:
+				$valor = $minimos_diarios ? array_sum($minimos_diarios) : null;
+				break;
+
+			case CWidgetFieldMetricList::AGREGACAO_HISTORICA_MEDIA_MINIMOS_DIARIOS:
+				$valor = $minimos_diarios ? array_sum($minimos_diarios) / count($minimos_diarios) : null;
+				break;
+
+			case CWidgetFieldMetricList::AGREGACAO_HISTORICA_SOMA_ULTIMOS_DIARIOS:
+				$valor = $ultimos_diarios ? array_sum($ultimos_diarios) : null;
+				break;
+
+			case CWidgetFieldMetricList::AGREGACAO_HISTORICA_MEDIA_ULTIMOS_DIARIOS:
+				$valor = $ultimos_diarios ? array_sum($ultimos_diarios) / count($ultimos_diarios) : null;
+				break;
+
+			case CWidgetFieldMetricList::AGREGACAO_HISTORICA_SOMA_PRIMEIROS_DIARIOS:
+				$valor = $primeiros_diarios ? array_sum($primeiros_diarios) : null;
+				break;
+
+			case CWidgetFieldMetricList::AGREGACAO_HISTORICA_MEDIA_PRIMEIROS_DIARIOS:
+				$valor = $primeiros_diarios ? array_sum($primeiros_diarios) / count($primeiros_diarios) : null;
 				break;
 
 			case CWidgetFieldMetricList::AGREGACAO_HISTORICA_AUMENTO_CONTADOR:

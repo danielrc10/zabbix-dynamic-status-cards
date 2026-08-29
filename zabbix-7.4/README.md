@@ -2,7 +2,7 @@
 
 [Português](#português) · [English](#english)
 
-> Zabbix 7.4 · Módulo 1.18.3 · Intervalo diário exato · Valor calculado com barra ou gráfico · Período global protegido · 66 ícones
+> Zabbix 7.4 · Módulo 1.19.0 · Agregações diárias simétricas · Valor calculado com barra ou gráfico · Período global protegido · 66 ícones
 
 ## Português
 
@@ -102,7 +102,7 @@ Na janela **Editar métrica**, o campo **Modo de exibição** permite mostrar so
 
 O período vem sempre do **seletor global de tempo do dashboard**. Ao navegar entre horas, dias ou datas absolutas, todas as visualizações e resumos são recalculados no intervalo escolhido. Relatórios agendados com **Ontem** usam o intervalo de ontem. O eixo mostra início, ponto médio e fim; quando o fim está no presente, mostra **Agora**.
 
-Nos modos **Valor + barra histórica** e **Valor + gráfico histórico**, o campo **Valor exibido acima do histórico** permite manter a última amostra ou exibir o resultado de qualquer cálculo histórico: soma, média, mínimo, máximo, soma/média dos máximos diários ou aumento do contador. O LED continua representando a última amostra; somente o texto numérico acima da visualização é substituído.
+Nos modos **Valor + barra histórica** e **Valor + gráfico histórico**, o campo **Valor exibido acima do histórico** permite manter a última amostra ou exibir o resultado de qualquer cálculo histórico: soma, média, mínimo, máximo, agregações diárias ou aumento do contador. O LED continua representando a última amostra; somente o texto numérico acima da visualização é substituído.
 
 A barra usa o histórico numérico nativo do Zabbix e divide o período automaticamente em até 180 blocos. Cada bloco recebe a pior condição observada conforme os limiares ou valores exatos da própria métrica. Quando há um **Item de disponibilidade**, seus valores críticos são exibidos como **Indisponível**; períodos sem amostras ficam como **Sem dados**.
 
@@ -132,11 +132,13 @@ Em **Cálculo do resumo**, escolha conforme a natureza do item:
 - **Média de todas as amostras:** comportamento médio de latência, CPU, temperatura ou ocupação.
 - **Menor valor do período:** menor latência, menor nível ou menor disponibilidade registrada.
 - **Maior valor do período:** pico de tráfego, latência, CPU, sessões simultâneas ou temperatura.
-- **Soma dos maiores valores de cada dia:** contador que cresce durante o dia e reinicia, como “ligações de hoje”.
-- **Média dos maiores valores de cada dia:** média dos totais diários, considerando somente dias com dados.
+- **Soma/média dos últimos valores de cada dia:** opção indicada para um contador que cresce durante o dia e reinicia, como “ligações de hoje”.
+- **Soma/média dos primeiros valores de cada dia:** inverso do último valor diário.
+- **Soma/média dos maiores valores de cada dia:** picos diários do período.
+- **Soma/média dos menores valores de cada dia:** inverso dos picos diários.
 - **Aumento do contador no intervalo:** calcula `máximo − mínimo` em cada dia e soma os resultados. Serve para contadores acumulativos, inclusive em intervalos parciais como 10h–12h, tratando a virada diária sem somar repetidamente todas as coletas.
 
-Os cálculos diários usam dias de calendário no fuso horário do frontend Zabbix e incluem o dia atual. Por exemplo, máximos diários de `10`, `15` e `12` ligações resultam em soma `37` e média diária `12,33`. A soma simples continua disponível, mas considera cada amostra armazenada e por isso não deve ser usada para um contador acumulado repetido a cada coleta.
+Os cálculos diários usam dias de calendário no fuso horário do frontend Zabbix e incluem somente os dias presentes no período global. Para “ontem”, maior e menor consultam exclusivamente ontem. Em três dias, últimos valores de `10`, `15` e `12` resultam em soma `37` e média diária `12,33`. A soma simples continua disponível, mas considera cada amostra armazenada e por isso não deve ser usada para um contador acumulado repetido a cada coleta.
 
 ### Indicadores e biblioteca de ícones
 

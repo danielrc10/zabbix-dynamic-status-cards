@@ -59,7 +59,7 @@ Estados atuais: `ok`, `aviso`, `critico`, `sem_dados` e `neutro`. A barra també
 
 A barra e o gráfico usam itens numéricos, consultam a retenção de histórico do Zabbix e compartilham até 180 blocos agregados. O gráfico colore os trechos com as mesmas regras e pode desenhar limiares numéricos. O resumo opcional calcula disponibilidade quando há um item de disponibilidade ou o percentual OK nos demais casos. Valor e indicador usam a última amostra dentro do período global selecionado. Intervalos acima de 24 horas podem ficar mais lentos.
 
-O modo **Resumo histórico (somente texto)** oferece soma/média das amostras, mínimo/máximo, soma/média dos máximos diários e **aumento do contador no intervalo**. Esta última opção calcula máximo menos mínimo por dia e soma os dias, servindo para contadores acumulativos e intervalos parciais.
+O modo **Resumo histórico (somente texto)** oferece soma/média das amostras, mínimo/máximo, soma/média dos primeiros, últimos, menores e maiores valores diários, além de **aumento do contador no intervalo**. Para contadores como “ligações hoje”, use a soma dos últimos valores diários. O aumento calcula máximo menos mínimo por dia e soma os dias, servindo para contadores acumulativos e intervalos parciais.
 
 A pasta `assets/icons` contém 66 SVGs iniciais. Novos arquivos com nome seguro aparecem automaticamente nos seletores do cabeçalho e das métricas; revise SVGs de terceiros antes de instalá-los.
 

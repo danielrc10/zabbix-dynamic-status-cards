@@ -1,5 +1,21 @@
 # Histórico de versões / Changelog
 
+## 1.19.0 — 2026-08-29
+
+### Português
+
+- Adiciona soma e média dos últimos valores de cada dia para contadores incrementais diários.
+- Adiciona os inversos correspondentes: primeiros, menores e maiores valores diários, todos com soma e média.
+- Faz maior e menor valor do período usarem consultas exatas, sem depender da compactação do gráfico.
+- Mantém o intervalo de “ontem” indivisível e soma somente os dias presentes no período global do dashboard.
+
+### English
+
+- Adds sum and average of each day's last values for daily incremental counters.
+- Adds the corresponding inverses: first, minimum, and maximum daily values, all with sum and average.
+- Makes period maximum and minimum use exact queries instead of graph compaction.
+- Keeps “yesterday” indivisible and sums only days contained in the dashboard global range.
+
 ## 1.18.3 — 2026-08-28
 
 ### Português

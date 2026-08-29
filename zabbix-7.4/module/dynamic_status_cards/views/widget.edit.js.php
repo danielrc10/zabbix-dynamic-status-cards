@@ -388,6 +388,12 @@ window.widget_form = new class extends CWidgetForm {
 					maximo: 'máximo do período',
 					soma_maximos_diarios: 'soma dos máximos diários',
 					media_maximos_diarios: 'média dos máximos diários',
+					soma_minimos_diarios: 'soma dos mínimos diários',
+					media_minimos_diarios: 'média dos mínimos diários',
+					soma_ultimos_diarios: 'soma dos últimos valores diários',
+					media_ultimos_diarios: 'média dos últimos valores diários',
+					soma_primeiros_diarios: 'soma dos primeiros valores diários',
+					media_primeiros_diarios: 'média dos primeiros valores diários',
 					aumento_contador: 'aumento do contador'
 				};
 				summary += ` · ${aggregation_labels[data.historico_agregacao] ?? 'resumo histórico'}`;
