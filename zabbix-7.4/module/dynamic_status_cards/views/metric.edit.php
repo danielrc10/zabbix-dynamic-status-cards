@@ -446,7 +446,7 @@ $grade_formatacao->addItem([
 $grade_formatacao->addItem([
 	(new CLabel('Atenção'))->addClass('js-historico'),
 	(new CFormField(
-		(new CSpan('Intervalos acima de 24 horas podem aumentar o tempo de carregamento.'))
+		(new CSpan('Barras e gráficos aceitam até 7 dias. Para períodos maiores, use o resumo somente texto.'))
 			->addClass(ZBX_STYLE_COLOR_WARNING)
 	))->addClass('js-historico')
 ]);

@@ -35,6 +35,8 @@ use Modules\DynamicStatusCards\Includes\{
  * and prepares the cards. The module stores no additional credentials.
  */
 class WidgetView extends CControllerDashboardWidgetView {
+	private const MAXIMO_DIAS_HISTORICO = 31;
+	private const MAXIMO_DIAS_VISUAL = 7;
 
 	private const ESTADOS = [
 		'neutro' => 0,
@@ -94,7 +96,7 @@ class WidgetView extends CControllerDashboardWidgetView {
 			return;
 		}
 
-		$limite_periodo_dias = max(1, min(365, (int) (
+		$limite_periodo_dias = max(1, min(self::MAXIMO_DIAS_HISTORICO, (int) (
 			$this->fields_values['periodo_maximo_dias'] ?? 7
 		)));
 		$duracao_periodo = max(0, $fim_periodo - $inicio_periodo);
@@ -104,6 +106,26 @@ class WidgetView extends CControllerDashboardWidgetView {
 			$dados['mensagem'] = 'O período selecionado no dashboard (aproximadamente '.$dias_selecionados.
 				' dias) excede o limite de segurança deste widget ('.$limite_periodo_dias.
 				' dias). Reduza o período global ou aumente o limite na configuração do widget.';
+			$this->setResponse(new CControllerResponseData($dados));
+			return;
+		}
+
+		$modos_visuais = [
+			CWidgetFieldMetricList::EXIBICAO_VALOR_HISTORICO,
+			CWidgetFieldMetricList::EXIBICAO_HISTORICO,
+			CWidgetFieldMetricList::EXIBICAO_VALOR_GRAFICO,
+			CWidgetFieldMetricList::EXIBICAO_GRAFICO
+		];
+		$tem_historico_visual = array_filter($linhas, static fn(array $linha): bool => in_array(
+			$linha['exibicao'] ?? CWidgetFieldMetricList::EXIBICAO_VALOR,
+			$modos_visuais,
+			true
+		));
+		if ($tem_historico_visual
+				&& $duracao_periodo > (self::MAXIMO_DIAS_VISUAL * SEC_PER_DAY) + $tolerancia_horario_verao) {
+			$dados['mensagem'] = 'Proteção do banco: barras e gráficos deste widget aceitam no máximo '.
+				self::MAXIMO_DIAS_VISUAL.' dias. Para calcular até '.self::MAXIMO_DIAS_HISTORICO.
+				' dias sem carregar o gráfico, use “Resumo histórico (somente texto)”.';
 			$this->setResponse(new CControllerResponseData($dados));
 			return;
 		}
@@ -633,7 +655,15 @@ class WidgetView extends CControllerDashboardWidgetView {
 						$grupo['itens_diarios'][$destino_diario][$item_valor['itemid']] = $item_valor;
 					}
 				}
-				foreach ([$item_valor, $item_estado, $item_complemento, $item_bloqueio] as $item) {
+				$resumo_sem_blocos = ($configuracao['exibicao'] ?? CWidgetFieldMetricList::EXIBICAO_VALOR)
+						=== CWidgetFieldMetricList::EXIBICAO_RESUMO_HISTORICO
+					&& !in_array($agregacao, [
+						CWidgetFieldMetricList::AGREGACAO_HISTORICA_SOMA,
+						CWidgetFieldMetricList::AGREGACAO_HISTORICA_MEDIA
+					], true);
+				foreach ($resumo_sem_blocos
+						? []
+						: [$item_valor, $item_estado, $item_complemento, $item_bloqueio] as $item) {
 					if ($item === null || !$this->itemSuportaHistorico($item)) {
 						continue;
 					}
@@ -660,9 +690,10 @@ class WidgetView extends CControllerDashboardWidgetView {
 				}
 			}
 
-			if (array_filter($grupo['itens_diarios'])) {
-				$this->consultarExtremosDiarios($grupo);
-			}
+		}
+
+		if (array_filter($grupo['itens_diarios'])) {
+			$this->consultarExtremosDiarios($grupo);
 		}
 
 		return $grupo;

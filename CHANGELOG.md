@@ -1,5 +1,21 @@
 # Histórico de versões / Changelog
 
+## 1.19.1 — 2026-08-29
+
+### Português
+
+- Impõe teto rígido de sete dias para barras e gráficos históricos.
+- Permite até 31 dias somente no resumo histórico textual.
+- Evita consultar e compactar os blocos do gráfico quando o resumo diário precisa apenas do agregado solicitado.
+- Bloqueia o período antes de qualquer consulta ao histórico, protegendo o banco e o disco do servidor.
+
+### English
+
+- Enforces a hard seven-day limit for historical bars and graphs.
+- Allows up to 31 days only for text-only historical summaries.
+- Skips graph bucket retrieval when a daily summary only needs the requested aggregate.
+- Blocks oversized periods before any history query, protecting the server database and disk.
+
 ## 1.19.0 — 2026-08-29
 
 ### Português

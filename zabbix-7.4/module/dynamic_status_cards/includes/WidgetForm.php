@@ -179,7 +179,7 @@ class WidgetForm extends CWidgetForm {
 					'periodo_maximo_dias',
 					'Período máximo consultado (dias)',
 					1,
-					365
+					31
 				))
 					->setDefault(7)
 					->setFlags(CWidgetField::FLAG_NOT_EMPTY)

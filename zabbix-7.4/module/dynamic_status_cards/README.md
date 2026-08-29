@@ -27,7 +27,7 @@ Depois acesse **Administração → Geral → Módulos**, escaneie o diretório 
 - **Colunas automáticas:** habilitadas por padrão; usam a largura e a quantidade real de cards sem exigir configuração da quantidade de hosts.
 - **Limite manual de colunas:** opção de uma a seis colunas, usada somente quando o ajuste automático é desmarcado.
 - **Largura máxima do card:** padrão de 320 px, configurável entre 160 e 1000 px; não limita a quantidade de hosts.
-- **Período máximo consultado:** limite de segurança de 1 a 365 dias, com padrão de 7; bloqueia a consulta em vez de truncar o resultado.
+- **Período máximo consultado:** limite rígido de 7 dias para gráficos e de até 31 dias para resumo somente texto; bloqueia a consulta em vez de truncar o resultado.
 - **Compactação vertical:** reduz automaticamente espaços e alturas em dois níveis; mantém a rolagem somente quando o conteúdo não cabe de forma legível.
 - **Copiar métrica:** duplica toda a configuração em uma nova métrica pronta para ajustes.
 - **Reordenar:** arraste a alça da primeira coluna para definir a ordem exibida nos cards.

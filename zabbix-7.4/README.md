@@ -2,7 +2,7 @@
 
 [Português](#português) · [English](#english)
 
-> Zabbix 7.4 · Módulo 1.19.0 · Agregações diárias simétricas · Valor calculado com barra ou gráfico · Período global protegido · 66 ícones
+> Zabbix 7.4 · Módulo 1.19.1 · Agregações diárias simétricas · Limites rígidos de segurança · 66 ícones
 
 ## Português
 
@@ -92,7 +92,7 @@ As cores de OK, aviso, crítico e sem dados são configuradas no formulário pri
 
 **Largura máxima de cada card** evita que poucos resultados ocupem toda a largura de um widget grande. O padrão é `320 px`, configurável entre `160` e `1000 px`. Esse limite não restringe a quantidade de hosts: novos cards continuam sendo adicionados automaticamente em colunas e linhas, alinhados a partir do início do widget.
 
-**Período máximo consultado** protege o banco contra seleções acidentais muito extensas. O padrão é `7 dias`, configurável de `1` a `365`. Se o período global ultrapassar o limite, nenhuma consulta de histórico é executada e o card mostra uma mensagem. O widget não trunca o intervalo silenciosamente, evitando apresentar totais incorretos.
+**Período máximo consultado** protege o banco contra seleções acidentais muito extensas. O padrão é `7 dias`, configurável de `1` a `31`. Além disso, barras e gráficos possuem teto rígido de `7 dias`; períodos maiores são aceitos somente no **Resumo histórico (somente texto)**. Se o período ultrapassar o limite aplicável, nenhuma consulta é executada. O widget não trunca o intervalo silenciosamente.
 
 As linhas de cards ocupam toda a altura fornecida ao widget, evitando a faixa vazia inferior. Quando o retângulo fica menor, o conteúdo interno é reduzido proporcionalmente e os cards são redistribuídos entre linhas e colunas; o widget não cria rolagem horizontal nem vertical. Com muitos hosts em uma área muito pequena, os textos naturalmente ficam menores, portanto aumente o widget quando precisar priorizar leitura.
 
