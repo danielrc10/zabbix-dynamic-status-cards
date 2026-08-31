@@ -34,8 +34,13 @@ class CWidgetFieldMetricList extends CWidgetField {
 	public const EXIBICAO_GRAFICO = 'grafico';
 	public const EXIBICAO_RESUMO_HISTORICO = 'resumo_historico';
 
+	public const FONTE_HISTORICA_AUTO = 'auto';
+	public const FONTE_HISTORICA_HISTORY = 'history';
+	public const FONTE_HISTORICA_TRENDS = 'trends';
+
 	public const AGREGACAO_HISTORICA_SOMA = 'soma';
 	public const AGREGACAO_HISTORICA_MEDIA = 'media';
+	public const AGREGACAO_HISTORICA_QUANTIDADE = 'quantidade';
 	public const AGREGACAO_HISTORICA_MINIMO = 'minimo';
 	public const AGREGACAO_HISTORICA_MAXIMO = 'maximo';
 	public const AGREGACAO_HISTORICA_SOMA_MAXIMOS_DIARIOS = 'soma_maximos_diarios';
@@ -95,6 +100,7 @@ class CWidgetFieldMetricList extends CWidgetField {
 			'estado_padrao' => 'neutro',
 			'exibicao' => self::EXIBICAO_VALOR,
 			'historico_dias' => 1,
+			'historico_fonte' => self::FONTE_HISTORICA_AUTO,
 			'historico_valor_calculado' => 0,
 			'historico_agregacao' => self::AGREGACAO_HISTORICA_SOMA,
 			'historico_mostrar_percentual' => 0,
@@ -159,6 +165,23 @@ class CWidgetFieldMetricList extends CWidgetField {
 			}
 			$historico_visual = $historico_ativo
 				&& $metrica['exibicao'] !== self::EXIBICAO_RESUMO_HISTORICO;
+			$usa_calculo_historico = $metrica['exibicao'] === self::EXIBICAO_RESUMO_HISTORICO
+				|| ((int) $metrica['historico_valor_calculado'] === 1
+					&& in_array($metrica['exibicao'], [
+						self::EXIBICAO_VALOR_HISTORICO,
+						self::EXIBICAO_VALOR_GRAFICO
+					], true));
+			if ($usa_calculo_historico
+					&& $metrica['historico_fonte'] === self::FONTE_HISTORICA_TRENDS
+					&& in_array($metrica['historico_agregacao'], [
+						self::AGREGACAO_HISTORICA_SOMA_ULTIMOS_DIARIOS,
+						self::AGREGACAO_HISTORICA_MEDIA_ULTIMOS_DIARIOS,
+						self::AGREGACAO_HISTORICA_SOMA_PRIMEIROS_DIARIOS,
+						self::AGREGACAO_HISTORICA_MEDIA_PRIMEIROS_DIARIOS
+					], true)) {
+				$erros[] = "Métrica {$numero}: estatísticas não preservam o primeiro ou o último valor exato; ".
+					'use Histórico detalhado ou máximo/mínimo diário.';
+			}
 			if ($historico_visual && $metrica['estado_modo'] === self::ESTADO_NENHUM) {
 				$erros[] = "Métrica {$numero}: a visualização histórica exige uma regra de estado por limiares ou valores exatos.";
 			}
@@ -234,6 +257,7 @@ class CWidgetFieldMetricList extends CWidgetField {
 			'estado_padrao' => ZBX_WIDGET_FIELD_TYPE_STR,
 			'exibicao' => ZBX_WIDGET_FIELD_TYPE_STR,
 			'historico_dias' => ZBX_WIDGET_FIELD_TYPE_INT32,
+			'historico_fonte' => ZBX_WIDGET_FIELD_TYPE_STR,
 			'historico_valor_calculado' => ZBX_WIDGET_FIELD_TYPE_INT32,
 			'historico_agregacao' => ZBX_WIDGET_FIELD_TYPE_STR,
 			'historico_mostrar_percentual' => ZBX_WIDGET_FIELD_TYPE_INT32,
@@ -348,10 +372,16 @@ class CWidgetFieldMetricList extends CWidgetField {
 				self::EXIBICAO_RESUMO_HISTORICO
 			]), 'default' => self::EXIBICAO_VALOR],
 			'historico_dias' => ['type' => API_INT32, 'in' => '1:90', 'default' => 1],
+			'historico_fonte' => ['type' => API_STRING_UTF8, 'in' => implode(',', [
+				self::FONTE_HISTORICA_AUTO,
+				self::FONTE_HISTORICA_HISTORY,
+				self::FONTE_HISTORICA_TRENDS
+			]), 'default' => self::FONTE_HISTORICA_AUTO],
 			'historico_valor_calculado' => ['type' => API_INT32, 'in' => '0,1', 'default' => 0],
 			'historico_agregacao' => ['type' => API_STRING_UTF8, 'in' => implode(',', [
 				self::AGREGACAO_HISTORICA_SOMA,
 				self::AGREGACAO_HISTORICA_MEDIA,
+				self::AGREGACAO_HISTORICA_QUANTIDADE,
 				self::AGREGACAO_HISTORICA_MINIMO,
 				self::AGREGACAO_HISTORICA_MAXIMO,
 				self::AGREGACAO_HISTORICA_SOMA_MAXIMOS_DIARIOS,
@@ -460,6 +490,9 @@ class CWidgetFieldMetricList extends CWidgetField {
 		$metrica['separador_complemento'] = (string) ($metrica['separador_complemento'] ?? ' / ');
 		$metrica['estado_percentual_calculado'] = (int) ($metrica['estado_percentual_calculado'] ?? 0);
 		$metrica['historico_dias'] = (int) ($metrica['historico_dias'] ?? 1);
+		$metrica['historico_fonte'] = (string) (
+			$metrica['historico_fonte'] ?? self::FONTE_HISTORICA_AUTO
+		);
 		$metrica['historico_valor_calculado'] = (int) ($metrica['historico_valor_calculado'] ?? 0);
 		$metrica['historico_agregacao'] = (string) (
 			$metrica['historico_agregacao'] ?? self::AGREGACAO_HISTORICA_SOMA

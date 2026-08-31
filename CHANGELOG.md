@@ -1,5 +1,25 @@
 # Histórico de versões / Changelog
 
+## 1.20.0 — 2026-08-31
+
+### Português
+
+- Adiciona por métrica as fontes Automática, Histórico detalhado e Estatísticas horárias.
+- No modo automático, reutiliza a seleção nativa do Zabbix e respeita retenções do item e substituições do Housekeeping.
+- Permite barras, gráficos e cálculos globais com Trends em períodos de até 365 dias.
+- Calcula média de Trends de forma ponderada por quantidade e adiciona Quantidade de amostras.
+- Mantém primeiro/último exatos no histórico e recomenda máximo diário para contadores crescentes.
+- Limita cálculos separados por dia a 31 dias e histórico detalhado a 7 dias visuais ou 31 dias textuais.
+
+### English
+
+- Adds Automatic, Detailed history, and Hourly trends sources per metric.
+- Automatic mode reuses Zabbix's native selection and honors item retention and Housekeeping overrides.
+- Allows trend-backed bars, graphs, and global calculations over periods up to 365 days.
+- Computes trend averages weighted by sample count and adds Sample count.
+- Keeps exact first/last calculations on history and recommends daily maximum for increasing counters.
+- Caps per-day calculations at 31 days and detailed history at 7 visual or 31 text-only days.
+
 ## 1.19.1 — 2026-08-29
 
 ### Português

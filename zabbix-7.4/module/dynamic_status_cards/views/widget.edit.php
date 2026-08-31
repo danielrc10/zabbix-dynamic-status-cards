@@ -158,7 +158,8 @@ $layout = (new CWidgetFormFieldsetCollapsibleView('Layout'))
 		(new CWidgetFieldIntegerBoxView($data['fields']['periodo_maximo_dias']))
 			->setFieldHint(makeHelpIcon(
 				'Proteção contra consultas muito extensas. Se o período global do dashboard ultrapassar este '.
-				'limite, o widget não consulta o banco e informa o motivo. O período nunca é truncado silenciosamente.'
+				'limite, o widget não consulta o banco e informa o motivo. Estatísticas podem chegar a 365 dias; '.
+				'o histórico detalhado possui limites menores. O período nunca é truncado silenciosamente.'
 			))
 	);
 

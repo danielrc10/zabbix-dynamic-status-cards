@@ -27,7 +27,7 @@ Depois acesse **Administração → Geral → Módulos**, escaneie o diretório 
 - **Colunas automáticas:** habilitadas por padrão; usam a largura e a quantidade real de cards sem exigir configuração da quantidade de hosts.
 - **Limite manual de colunas:** opção de uma a seis colunas, usada somente quando o ajuste automático é desmarcado.
 - **Largura máxima do card:** padrão de 320 px, configurável entre 160 e 1000 px; não limita a quantidade de hosts.
-- **Período máximo consultado:** limite rígido de 7 dias para gráficos e de até 31 dias para resumo somente texto; bloqueia a consulta em vez de truncar o resultado.
+- **Período máximo consultado:** limite geral configurável até 365 dias; histórico detalhado permanece protegido em 7 dias para gráficos e 31 dias para resumos.
 - **Compactação vertical:** reduz automaticamente espaços e alturas em dois níveis; mantém a rolagem somente quando o conteúdo não cabe de forma legível.
 - **Copiar métrica:** duplica toda a configuração em uma nova métrica pronta para ajustes.
 - **Reordenar:** arraste a alça da primeira coluna para definir a ordem exibida nos cards.
@@ -44,6 +44,7 @@ Depois acesse **Administração → Geral → Módulos**, escaneie o diretório 
 - **Limiares numéricos:** permitem escolher se valores maiores ou menores representam pior estado.
 - **Valores exatos:** associam listas de valores aos estados OK, aviso e crítico.
 - **Histórico:** segue o período global do dashboard e mostra o último valor desse intervalo com barra, gráfico ou resumo textual.
+- **Fonte histórica:** automática usa histórico enquanto todo o intervalo está retido e estatísticas horárias para períodos antigos; também pode ser forçada por métrica.
 - **Valor calculado com histórico:** nos modos valor + barra/gráfico, substitui opcionalmente a última amostra pelo resultado da soma, média, mínimo, máximo ou agregação diária selecionada.
 - **Eixo histórico:** mostra início, ponto médio e Agora; nome e resumo percentual são opcionais.
 - **Cores históricas:** OK, aviso, crítico, indisponível e sem dados podem herdar a paleta ou ser personalizadas por métrica.
@@ -57,9 +58,9 @@ Formatos: `automatico`, `mapa`, `numero`, `percentual_fracao`, `data` e `texto`.
 
 Estados atuais: `ok`, `aviso`, `critico`, `sem_dados` e `neutro`. A barra também distingue `indisponivel`.
 
-A barra e o gráfico usam itens numéricos, consultam a retenção de histórico do Zabbix e compartilham até 180 blocos agregados. O gráfico colore os trechos com as mesmas regras e pode desenhar limiares numéricos. O resumo opcional calcula disponibilidade quando há um item de disponibilidade ou o percentual OK nos demais casos. Valor e indicador usam a última amostra dentro do período global selecionado. Intervalos acima de 24 horas podem ficar mais lentos.
+A barra e o gráfico usam itens numéricos, consultam a retenção configurada no item e no Housekeeping do Zabbix e compartilham até 180 blocos agregados. Em **Automática**, um item com histórico de 7 dias e estatísticas de 365 dias usa dados detalhados em intervalos recentes e estatísticas compactas em períodos antigos. Em Trends, o último valor visual é a média da última hora consolidada. O gráfico colore os trechos com as mesmas regras e pode desenhar limiares numéricos.
 
-O modo **Resumo histórico (somente texto)** oferece soma/média das amostras, mínimo/máximo, soma/média dos primeiros, últimos, menores e maiores valores diários, além de **aumento do contador no intervalo**. Para contadores como “ligações hoje”, use a soma dos últimos valores diários. O aumento calcula máximo menos mínimo por dia e soma os dias, servindo para contadores acumulativos e intervalos parciais.
+O modo **Resumo histórico (somente texto)** oferece soma, média ponderada, quantidade de amostras, mínimo/máximo, soma/média dos primeiros, últimos, menores e maiores valores diários, além de **aumento do contador no intervalo**. Estatísticas preservam mínimo, máximo, média e quantidade por hora; primeiro e último exatos dependem do histórico. Para um contador crescente como “ligações hoje”, prefira a soma dos máximos diários ao consultar estatísticas. Cálculos separados por dia aceitam até 31 dias; cálculos globais e gráficos com estatísticas podem usar o limite geral de até 365 dias.
 
 A pasta `assets/icons` contém 66 SVGs iniciais. Novos arquivos com nome seguro aparecem automaticamente nos seletores do cabeçalho e das métricas; revise SVGs de terceiros antes de instalá-los.
 
@@ -90,7 +91,7 @@ Then go to **Administration → General → Modules**, scan the directory, and e
 - **Automatic columns:** enabled by default; use the actual width and card count without requiring the host count to be configured.
 - **Manual column limit:** optional one-to-six column limit used only when automatic adjustment is disabled.
 - **Maximum card width:** defaults to 320 px, configurable from 160 to 1000 px; it does not limit the host count.
-- **Maximum queried period:** 1-to-365-day safety limit, defaulting to 7; blocks the query instead of truncating its result.
+- **Maximum queried period:** general safety limit configurable up to 365 days; detailed history remains capped at 7 days for graphs and 31 days for summaries.
 - **Vertical compaction:** automatically reduces spacing and heights in two stages; keeps scrolling only when content cannot fit readably.
 - **Copy metric:** duplicates every setting into a new metric ready to be adjusted.
 - **Reorder:** drag the first-column handle to define card display order.
@@ -107,6 +108,7 @@ Then go to **Administration → General → Modules**, scan the directory, and e
 - **Numeric thresholds:** support both higher-is-worse and lower-is-worse evaluation.
 - **Exact values:** associate value lists with OK, warning, and critical states.
 - **History:** follows the global dashboard period and displays that range's last value with a bar, graph, or text summary.
+- **Historical source:** automatic mode uses retained history for recent ranges and hourly trends for older ranges; it can also be forced per metric.
 - **Calculated value with history:** value + bar/graph modes can replace the last sample with the selected sum, average, minimum, maximum, or daily aggregation result.
 - **Historical axis:** shows start, temporal midpoint, and Agora; metric name and percentage summary are optional.
 - **Historical colors:** OK, warning, critical, unavailable, and no data can inherit the palette or be customized per metric.
@@ -120,9 +122,9 @@ Formats: `automatico`, `mapa`, `numero`, `percentual_fracao`, `data`, and `texto
 
 Current states: `ok`, `aviso`, `critico`, `sem_dados`, and `neutro`. The bar also distinguishes `indisponivel`.
 
-The historical bar and graph use numeric items, read Zabbix history retention, and share at most 180 aggregated buckets. Graph segments use the same state rules and may display numeric thresholds. The optional summary calculates availability when an availability item exists, or the OK percentage otherwise. Value and indicator use the last sample inside the selected global period. Ranges longer than 24 hours may load more slowly.
+The historical bar and graph use numeric items, honor item and Housekeeping retention, and share at most 180 aggregated buckets. In **Automatic** mode, an item with 7 days of history and 365 days of trends uses detailed data for recent ranges and compact trends for older ranges. Graph segments use the same state rules and may display numeric thresholds.
 
-The **Historical summary (text only)** mode supports sample sum/average, minimum/maximum, daily-maximum sum/average, and **counter increase over the range**. The latter calculates daily maximum minus minimum and sums the days, fitting cumulative counters and partial ranges.
+The **Historical summary (text only)** mode supports sample sum, weighted average, sample count, minimum/maximum, symmetric daily aggregations, and **counter increase over the range**. Trends preserve hourly minimum, maximum, average, and sample count; exact first/last values require history. For a monotonically increasing daily counter, prefer daily maxima when using trends. Per-day calculations accept up to 31 days, while global calculations and trend graphs may use the general limit of up to 365 days.
 
 The `assets/icons` directory ships with 66 SVG files. New safely named files automatically appear in the header and metric selectors; review third-party SVG files before installation.
 

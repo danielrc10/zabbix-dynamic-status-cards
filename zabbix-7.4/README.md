@@ -2,7 +2,7 @@
 
 [Português](#português) · [English](#english)
 
-> Zabbix 7.4 · Módulo 1.19.1 · Agregações diárias simétricas · Limites rígidos de segurança · 66 ícones
+> Zabbix 7.4 · Módulo 1.20.0 · Histórico e estatísticas automáticos · Agregações seguras · 66 ícones
 
 ## Português
 
@@ -92,7 +92,7 @@ As cores de OK, aviso, crítico e sem dados são configuradas no formulário pri
 
 **Largura máxima de cada card** evita que poucos resultados ocupem toda a largura de um widget grande. O padrão é `320 px`, configurável entre `160` e `1000 px`. Esse limite não restringe a quantidade de hosts: novos cards continuam sendo adicionados automaticamente em colunas e linhas, alinhados a partir do início do widget.
 
-**Período máximo consultado** protege o banco contra seleções acidentais muito extensas. O padrão é `7 dias`, configurável de `1` a `31`. Além disso, barras e gráficos possuem teto rígido de `7 dias`; períodos maiores são aceitos somente no **Resumo histórico (somente texto)**. Se o período ultrapassar o limite aplicável, nenhuma consulta é executada. O widget não trunca o intervalo silenciosamente.
+**Período máximo consultado** protege o banco contra seleções acidentais muito extensas. O padrão é `365 dias`, configurável de `1` a `365`. A fonte **Histórico detalhado** continua limitada a `7 dias` em barras/gráficos e `31 dias` em resumos. Consultas com **Estatísticas horárias** podem usar o limite geral; cálculos separados por dia aceitam até `31 dias`. Se o período ultrapassar o limite aplicável, nenhuma consulta é executada e o widget nunca trunca o intervalo silenciosamente.
 
 As linhas de cards ocupam toda a altura fornecida ao widget, evitando a faixa vazia inferior. Quando o retângulo fica menor, o conteúdo interno é reduzido proporcionalmente e os cards são redistribuídos entre linhas e colunas; o widget não cria rolagem horizontal nem vertical. Com muitos hosts em uma área muito pequena, os textos naturalmente ficam menores, portanto aumente o widget quando precisar priorizar leitura.
 
@@ -102,9 +102,11 @@ Na janela **Editar métrica**, o campo **Modo de exibição** permite mostrar so
 
 O período vem sempre do **seletor global de tempo do dashboard**. Ao navegar entre horas, dias ou datas absolutas, todas as visualizações e resumos são recalculados no intervalo escolhido. Relatórios agendados com **Ontem** usam o intervalo de ontem. O eixo mostra início, ponto médio e fim; quando o fim está no presente, mostra **Agora**.
 
+Em **Fonte dos dados históricos**, escolha **Automática** para seguir a retenção efetiva do item e as substituições globais do Housekeeping. Se todo o início do intervalo ainda estiver no histórico, o widget usa as amostras detalhadas; caso contrário, usa as estatísticas horárias para todo o intervalo. Também é possível forçar **Histórico detalhado** ou **Estatísticas horárias** por métrica. Assim, a configuração recomendada é histórico `7d`, estatísticas `365d` e fonte automática. Em Trends, o “último valor” visual corresponde à média da última hora já consolidada.
+
 Nos modos **Valor + barra histórica** e **Valor + gráfico histórico**, o campo **Valor exibido acima do histórico** permite manter a última amostra ou exibir o resultado de qualquer cálculo histórico: soma, média, mínimo, máximo, agregações diárias ou aumento do contador. O LED continua representando a última amostra; somente o texto numérico acima da visualização é substituído.
 
-A barra usa o histórico numérico nativo do Zabbix e divide o período automaticamente em até 180 blocos. Cada bloco recebe a pior condição observada conforme os limiares ou valores exatos da própria métrica. Quando há um **Item de disponibilidade**, seus valores críticos são exibidos como **Indisponível**; períodos sem amostras ficam como **Sem dados**.
+A barra usa a fonte numérica escolhida e divide o período automaticamente em até 180 blocos. Cada bloco recebe a pior condição observada conforme os limiares ou valores exatos da própria métrica. Quando há um **Item de disponibilidade**, seus valores críticos são exibidos como **Indisponível**; períodos sem amostras ficam como **Sem dados**.
 
 O gráfico reutiliza exatamente esses blocos, sem uma segunda consulta. A curva usa a média agregada; cada trecho e sua área recebem a cor do estado calculado para o bloco. Limiares numéricos de aviso e crítico aparecem como linhas tracejadas quando usam a mesma escala do item exibido. Lacunas no histórico interrompem a curva em vez de produzir um falso valor zero.
 
@@ -118,9 +120,7 @@ As cinco cores do histórico podem herdar a paleta do widget ou ser personalizad
 
 O resumo opcional mostra **disponibilidade** quando existe um item de disponibilidade ou o percentual de blocos **OK** nos demais casos. Blocos sem dados não entram no denominador. Passe o mouse sobre uma faixa para ver período, estado, mínimo, média e máximo.
 
-A visualização histórica exige um item numérico para determinar o estado. Ela consulta somente a tabela de histórico, não as tendências; portanto, o período realmente visível depende da retenção configurada para o item. O valor simples e a cor do card usam a **última amostra existente dentro do intervalo selecionado**, permitindo consultar corretamente um estado passado.
-
-Intervalos acima de 24 horas podem aumentar significativamente o tempo de carregamento, pois o histórico é consultado novamente a cada atualização do dashboard.
+A visualização histórica exige um item numérico para determinar o estado. Estatísticas armazenam por hora mínimo, máximo, média e quantidade, reduzindo fortemente o volume consultado. Primeiro e último valores exatos não existem em Trends; quando esses cálculos são selecionados no modo automático, o widget mantém o histórico detalhado. Para um contador que somente cresce e reinicia diariamente, use o **máximo diário** como equivalente leve ao último valor do dia.
 
 ### Resumo histórico somente em texto
 
@@ -130,6 +130,7 @@ Em **Cálculo do resumo**, escolha conforme a natureza do item:
 
 - **Soma de todas as amostras:** eventos incrementais por intervalo, como ataques no último minuto, chamadas encerradas desde a coleta anterior ou bytes transferidos no intervalo.
 - **Média de todas as amostras:** comportamento médio de latência, CPU, temperatura ou ocupação.
+- **Quantidade de amostras:** número de coletas presentes no intervalo; em estatísticas, soma a quantidade registrada nos resumos horários.
 - **Menor valor do período:** menor latência, menor nível ou menor disponibilidade registrada.
 - **Maior valor do período:** pico de tráfego, latência, CPU, sessões simultâneas ou temperatura.
 - **Soma/média dos últimos valores de cada dia:** opção indicada para um contador que cresce durante o dia e reinicia, como “ligações de hoje”.
@@ -138,7 +139,7 @@ Em **Cálculo do resumo**, escolha conforme a natureza do item:
 - **Soma/média dos menores valores de cada dia:** inverso dos picos diários.
 - **Aumento do contador no intervalo:** calcula `máximo − mínimo` em cada dia e soma os resultados. Serve para contadores acumulativos, inclusive em intervalos parciais como 10h–12h, tratando a virada diária sem somar repetidamente todas as coletas.
 
-Os cálculos diários usam dias de calendário no fuso horário do frontend Zabbix e incluem somente os dias presentes no período global. Para “ontem”, maior e menor consultam exclusivamente ontem. Em três dias, últimos valores de `10`, `15` e `12` resultam em soma `37` e média diária `12,33`. A soma simples continua disponível, mas considera cada amostra armazenada e por isso não deve ser usada para um contador acumulado repetido a cada coleta.
+Os cálculos diários usam dias de calendário no fuso horário do frontend Zabbix e incluem somente os dias presentes no período global. Para “ontem”, maior e menor consultam exclusivamente ontem. Em três dias, máximos de `10`, `15` e `12` resultam em soma `37` e média diária `12,33`. A soma simples continua disponível, mas considera cada amostra armazenada e por isso não deve ser usada para um contador acumulado repetido a cada coleta. Por segurança, agregações separadas por dia aceitam até 31 dias.
 
 ### Indicadores e biblioteca de ícones
 
@@ -310,7 +311,7 @@ OK, warning, critical, and no-data colors are configured in the main widget form
 
 **Maximum width of each card** prevents a few results from occupying the full width of a large widget. It defaults to `320 px` and can be configured from `160` to `1000 px`. This limit does not restrict the host count: new cards continue to be added automatically in columns and rows, aligned from the widget start.
 
-**Maximum queried period** protects the database from accidentally extensive selections. It defaults to `7 days` and can be configured from `1` to `365`. When the global range exceeds the limit, no history query runs and the widget displays an explanatory message. It never silently truncates the range, preventing misleading totals.
+**Maximum queried period** protects the database from accidentally extensive selections. It defaults to `365 days` and can be configured from `1` to `365`. Detailed history remains capped at `7 days` for bars/graphs and `31 days` for summaries. Hourly trends may use the general limit, while per-day calculations accept at most `31 days`. The widget blocks unsupported ranges instead of silently truncating them.
 
 Card rows occupy the entire height assigned to the widget, avoiding an empty strip at the bottom. When the rectangle becomes smaller, inner content is proportionally reduced and cards are redistributed across rows and columns; the widget creates neither horizontal nor vertical scrolling. With many hosts in a very small area, text naturally becomes smaller, so enlarge the widget when readability has priority.
 
@@ -320,9 +321,11 @@ In **Edit metric**, **Display mode** can show only the current value, combine it
 
 The period always follows the dashboard's **global time selector**. Navigating through hours, days, or absolute dates recalculates every visualization and summary for that range. Scheduled reports using **Yesterday** therefore use yesterday's range. The axis displays start, midpoint, and end; when the end is current, it displays **Agora**.
 
+Under **Historical data source**, choose **Automatic** to honor the item's effective retention and global Housekeeping overrides. If the range start is still retained in history, detailed samples are used; otherwise hourly trends are used for the entire range. **Detailed history** and **Hourly trends** can also be forced per metric. The recommended setup is `7d` history, `365d` trends, and automatic source. With trends, the visual “last value” is the average of the latest consolidated hour.
+
 In **Value + historical bar** and **Value + historical graph** modes, **Value displayed above history** can keep the last sample or show any historical calculation: sum, average, minimum, maximum, daily-maximum sum/average, or counter increase. The LED still represents the last sample; only the numeric text above the visualization is replaced.
 
-The bar reads Zabbix's native numeric history and automatically divides the period into at most 180 buckets. Each bucket receives the worst condition detected by the metric's thresholds or exact-value rules. When an **availability item** is configured, its critical values are rendered as **Unavailable**; buckets without samples are rendered as **No data**.
+The bar reads the selected numeric source and automatically divides the period into at most 180 buckets. Each bucket receives the worst condition detected by the metric's thresholds or exact-value rules. When an **availability item** is configured, its critical values are rendered as **Unavailable**; buckets without samples are rendered as **No data**.
 
 The graph reuses those exact buckets without a second query. Its curve uses the aggregated average, while each segment and area receives the bucket's calculated state color. Numeric warning and critical thresholds are drawn as dashed lines when they use the displayed item's scale. History gaps break the curve instead of producing a false zero.
 
@@ -330,17 +333,15 @@ The five historical colors may inherit the widget palette or be customized per m
 
 The optional summary shows **availability** when an availability item exists, or the percentage of **OK** buckets otherwise. No-data buckets are excluded from the denominator. Hover a strip to inspect its time range, state, minimum, average, and maximum.
 
-The historical visualization requires a numeric item to determine state. It intentionally reads the history table rather than trends, so the visible range depends on item history retention. A plain value and the card color use the **last sample inside the selected range**, allowing past states to be inspected correctly.
-
-Ranges longer than 24 hours can significantly increase loading time because history is queried again on every dashboard refresh.
+The historical visualization requires a numeric item to determine state. Trends preserve hourly minimum, maximum, average, and sample count, dramatically reducing query volume. Exact first/last values are not retained in Trends; automatic mode therefore keeps detailed history for those calculations. For a daily counter that only increases and resets, use the **daily maximum** as the lightweight equivalent of the day's last value.
 
 ### Text-only historical summary
 
 Choose **Historical summary (text only)** under **Display mode** to show one result for the period without a bar, graph, or state indicator. The result preserves the configured item format and unit and does not affect the card's overall state.
 
-Choose the **Summary calculation** according to the item semantics: sum or average of all samples, minimum or maximum over the period, sum or average of daily maxima, or **counter increase over the range**. The latter calculates `maximum − minimum` per calendar day and sums the results. It fits cumulative counters, including partial ranges such as 10:00–12:00, while handling daily resets.
+Choose the **Summary calculation** according to the item semantics: sample sum, weighted average, sample count, minimum or maximum over the period, symmetric daily aggregations, or **counter increase over the range**. The latter calculates `maximum − minimum` per calendar day and sums the results. It fits cumulative counters, including partial ranges such as 10:00–12:00, while handling daily resets.
 
-Daily calculations use calendar days in the Zabbix frontend time zone and include the current day. Daily maxima of `10`, `15`, and `12` calls produce a sum of `37` and a daily average of `12.33`. The simple sum remains available but counts every stored sample, so it should not be used for a cumulative value repeated at every collection.
+Daily calculations use calendar days in the Zabbix frontend time zone and include only days inside the selected range. Daily maxima of `10`, `15`, and `12` calls produce a sum of `37` and a daily average of `12.33`. The simple sum remains available but counts every stored sample, so it should not be used for a cumulative value repeated at every collection. Per-day aggregations are capped at 31 days for safety.
 
 ### Indicators and icon library
 

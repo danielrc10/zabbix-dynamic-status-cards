@@ -31,7 +31,7 @@ sudo ./scripts/install_dynamic_status_cards.sh
 
 | Versão do Zabbix | Versão do módulo | Estado | Documentação e arquivos |
 |---|---:|---|---|
-| 7.4 | 1.19.1 | Em validação | [Abrir versão 7.4](zabbix-7.4/README.md) |
+| 7.4 | 1.20.0 | Em validação | [Abrir versão 7.4](zabbix-7.4/README.md) |
 
 ## English
 
@@ -43,7 +43,7 @@ The module does not depend on the web monitoring template. That template is only
 
 | Zabbix version | Module version | Status | Documentation and files |
 |---|---:|---|---|
-| 7.4 | 1.19.1 | Testing | [Open version 7.4](zabbix-7.4/README.md#english) |
+| 7.4 | 1.20.0 | Testing | [Open version 7.4](zabbix-7.4/README.md#english) |
 
 ## Autor e licença / Author and license
 

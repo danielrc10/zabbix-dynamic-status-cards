@@ -15,6 +15,7 @@ namespace Modules\DynamicStatusCards\Actions;
 use API,
 	CControllerDashboardWidgetView,
 	CControllerResponseData,
+	CItemHelper,
 	CMacrosResolverHelper,
 	CTimezoneHelper,
 	CWebUser,
@@ -37,6 +38,8 @@ use Modules\DynamicStatusCards\Includes\{
 class WidgetView extends CControllerDashboardWidgetView {
 	private const MAXIMO_DIAS_HISTORICO = 31;
 	private const MAXIMO_DIAS_VISUAL = 7;
+	private const MAXIMO_DIAS_ESTATISTICAS = 365;
+	private const MAXIMO_DIAS_AGREGACAO_DIARIA = 31;
 
 	private const ESTADOS = [
 		'neutro' => 0,
@@ -96,8 +99,8 @@ class WidgetView extends CControllerDashboardWidgetView {
 			return;
 		}
 
-		$limite_periodo_dias = max(1, min(self::MAXIMO_DIAS_HISTORICO, (int) (
-			$this->fields_values['periodo_maximo_dias'] ?? 7
+		$limite_periodo_dias = max(1, min(self::MAXIMO_DIAS_ESTATISTICAS, (int) (
+			$this->fields_values['periodo_maximo_dias'] ?? self::MAXIMO_DIAS_ESTATISTICAS
 		)));
 		$duracao_periodo = max(0, $fim_periodo - $inicio_periodo);
 		$tolerancia_horario_verao = 3 * SEC_PER_HOUR;
@@ -106,26 +109,6 @@ class WidgetView extends CControllerDashboardWidgetView {
 			$dados['mensagem'] = 'O período selecionado no dashboard (aproximadamente '.$dias_selecionados.
 				' dias) excede o limite de segurança deste widget ('.$limite_periodo_dias.
 				' dias). Reduza o período global ou aumente o limite na configuração do widget.';
-			$this->setResponse(new CControllerResponseData($dados));
-			return;
-		}
-
-		$modos_visuais = [
-			CWidgetFieldMetricList::EXIBICAO_VALOR_HISTORICO,
-			CWidgetFieldMetricList::EXIBICAO_HISTORICO,
-			CWidgetFieldMetricList::EXIBICAO_VALOR_GRAFICO,
-			CWidgetFieldMetricList::EXIBICAO_GRAFICO
-		];
-		$tem_historico_visual = array_filter($linhas, static fn(array $linha): bool => in_array(
-			$linha['exibicao'] ?? CWidgetFieldMetricList::EXIBICAO_VALOR,
-			$modos_visuais,
-			true
-		));
-		if ($tem_historico_visual
-				&& $duracao_periodo > (self::MAXIMO_DIAS_VISUAL * SEC_PER_DAY) + $tolerancia_horario_verao) {
-			$dados['mensagem'] = 'Proteção do banco: barras e gráficos deste widget aceitam no máximo '.
-				self::MAXIMO_DIAS_VISUAL.' dias. Para calcular até '.self::MAXIMO_DIAS_HISTORICO.
-				' dias sem carregar o gráfico, use “Resumo histórico (somente texto)”.';
 			$this->setResponse(new CControllerResponseData($dados));
 			return;
 		}
@@ -155,7 +138,9 @@ class WidgetView extends CControllerDashboardWidgetView {
 			return;
 		}
 		$parametros_itens = [
-			'output' => ['itemid', 'hostid', 'units', 'value_type', 'name_resolved', 'key_'],
+			'output' => [
+				'itemid', 'hostid', 'units', 'value_type', 'name_resolved', 'key_', 'history', 'trends'
+			],
 			'selectHosts' => ['name'],
 			'selectTags' => ['tag', 'value'],
 			'selectValueMap' => ['mappings'],
@@ -181,6 +166,18 @@ class WidgetView extends CControllerDashboardWidgetView {
 		});
 		$cards = array_slice($cards, 0, (int) $this->fields_values['limite_cards'], true);
 
+		$mensagem_seguranca = $this->validarPeriodoPorFonte(
+			$cards,
+			$linhas,
+			$inicio_periodo,
+			$fim_periodo
+		);
+		if ($mensagem_seguranca !== '') {
+			$dados['mensagem'] = $mensagem_seguranca;
+			$this->setResponse(new CControllerResponseData($dados));
+			return;
+		}
+
 		$itens_historico = [];
 		foreach ($cards as $card) {
 			foreach (array_merge(
@@ -197,10 +194,13 @@ class WidgetView extends CControllerDashboardWidgetView {
 
 		$historico = [];
 		if ($itens_historico) {
+			$itens_ultimo_valor = CItemHelper::addDataSource(array_values($itens_historico), $inicio_periodo);
 			$itens_ultimo_valor = array_map(static function(array $item): array {
-				$item['source'] = 'history';
+				if (!in_array((int) $item['value_type'], [ITEM_VALUE_TYPE_FLOAT, ITEM_VALUE_TYPE_UINT64], true)) {
+					$item['source'] = 'history';
+				}
 				return $item;
-			}, array_values($itens_historico));
+			}, $itens_ultimo_valor);
 			$ultimos_valores = Manager::History()->getAggregatedValues(
 				$itens_ultimo_valor,
 				AGGREGATE_LAST,
@@ -574,6 +574,157 @@ class WidgetView extends CControllerDashboardWidgetView {
 	}
 
 	/**
+	 * PT-BR: Decide a fonte por item reutilizando a mesma regra nativa do frontend Zabbix.
+	 * EN: Selects each item's source using the same native rule as the Zabbix frontend.
+	 */
+	private function aplicarFonteHistorica(array $item, array $configuracao, int $inicio): array {
+		if (isset($item['source']) && in_array($item['source'], ['history', 'trends'], true)) {
+			return $item;
+		}
+
+		if (!$this->itemSuportaHistorico($item)) {
+			$item['source'] = 'history';
+			return $item;
+		}
+
+		[$item] = CItemHelper::addDataSource([$item], $inicio);
+		$fonte_automatica = $item['source'];
+		$item['historico_intervalo_completo'] = (int) ($item['history'] ?? 0) > 0
+			&& time() - (int) $item['history'] <= $inicio + 60;
+		$item['estatisticas_intervalo_completo'] = (int) ($item['trends'] ?? 0) > 0
+			&& time() - (int) $item['trends'] <= $inicio + SEC_PER_HOUR;
+		$fonte = $configuracao['historico_fonte'] ?? CWidgetFieldMetricList::FONTE_HISTORICA_AUTO;
+		if ($fonte === CWidgetFieldMetricList::FONTE_HISTORICA_AUTO) {
+			$item['source'] = $fonte_automatica;
+			if ($this->agregacaoExigeHistoricoExato($configuracao)) {
+				$item['source'] = 'history';
+			}
+		}
+		else {
+			$item['source'] = $fonte === CWidgetFieldMetricList::FONTE_HISTORICA_TRENDS
+				? 'trends'
+				: 'history';
+		}
+
+		return $item;
+	}
+
+	private function usaCalculoHistorico(array $configuracao): bool {
+		$exibicao = $configuracao['exibicao'] ?? CWidgetFieldMetricList::EXIBICAO_VALOR;
+
+		return $exibicao === CWidgetFieldMetricList::EXIBICAO_RESUMO_HISTORICO
+			|| ((int) ($configuracao['historico_valor_calculado'] ?? 0) === 1
+				&& in_array($exibicao, [
+					CWidgetFieldMetricList::EXIBICAO_VALOR_HISTORICO,
+					CWidgetFieldMetricList::EXIBICAO_VALOR_GRAFICO
+				], true));
+	}
+
+	private function agregacaoExigeHistoricoExato(array $configuracao): bool {
+		return $this->usaCalculoHistorico($configuracao)
+			&& in_array($configuracao['historico_agregacao'] ?? '', [
+				CWidgetFieldMetricList::AGREGACAO_HISTORICA_SOMA_ULTIMOS_DIARIOS,
+				CWidgetFieldMetricList::AGREGACAO_HISTORICA_MEDIA_ULTIMOS_DIARIOS,
+				CWidgetFieldMetricList::AGREGACAO_HISTORICA_SOMA_PRIMEIROS_DIARIOS,
+				CWidgetFieldMetricList::AGREGACAO_HISTORICA_MEDIA_PRIMEIROS_DIARIOS
+			], true);
+	}
+
+	private function agregacaoUsaDias(array $configuracao): bool {
+		return $this->usaCalculoHistorico($configuracao)
+			&& in_array($configuracao['historico_agregacao'] ?? '', [
+				CWidgetFieldMetricList::AGREGACAO_HISTORICA_SOMA_MAXIMOS_DIARIOS,
+				CWidgetFieldMetricList::AGREGACAO_HISTORICA_MEDIA_MAXIMOS_DIARIOS,
+				CWidgetFieldMetricList::AGREGACAO_HISTORICA_SOMA_MINIMOS_DIARIOS,
+				CWidgetFieldMetricList::AGREGACAO_HISTORICA_MEDIA_MINIMOS_DIARIOS,
+				CWidgetFieldMetricList::AGREGACAO_HISTORICA_SOMA_ULTIMOS_DIARIOS,
+				CWidgetFieldMetricList::AGREGACAO_HISTORICA_MEDIA_ULTIMOS_DIARIOS,
+				CWidgetFieldMetricList::AGREGACAO_HISTORICA_SOMA_PRIMEIROS_DIARIOS,
+				CWidgetFieldMetricList::AGREGACAO_HISTORICA_MEDIA_PRIMEIROS_DIARIOS,
+				CWidgetFieldMetricList::AGREGACAO_HISTORICA_AUMENTO_CONTADOR
+			], true);
+	}
+
+	private function chaveItemFonte(array $item): string {
+		return ($item['source'] ?? 'history').':'.$item['itemid'];
+	}
+
+	/**
+	 * PT-BR: Bloqueia somente as combinações realmente pesadas. Estatísticas compactas
+	 * podem cobrir períodos longos; histórico detalhado mantém limites conservadores.
+	 * EN: Blocks only actually expensive combinations. Compact trends may span long
+	 * periods, while detailed history retains conservative limits.
+	 */
+	private function validarPeriodoPorFonte(array $cards, array $linhas, int $inicio, int $fim): string {
+		$duracao = max(0, $fim - $inicio);
+		$tolerancia = 3 * SEC_PER_HOUR;
+
+		foreach ($cards as $card) {
+			foreach ($linhas as $indice => $configuracao) {
+				if (($configuracao['tipo'] ?? CWidgetFieldMetricList::TIPO_METRICA)
+						!== CWidgetFieldMetricList::TIPO_METRICA
+						|| ($configuracao['exibicao'] ?? CWidgetFieldMetricList::EXIBICAO_VALOR)
+							=== CWidgetFieldMetricList::EXIBICAO_VALOR) {
+					continue;
+				}
+
+				$item_valor = $card['itens'][$indice] ?? null;
+				if ($item_valor === null || !$this->itemSuportaHistorico($item_valor)) {
+					continue;
+				}
+
+				if ($this->agregacaoUsaDias($configuracao)
+						&& $duracao > (self::MAXIMO_DIAS_AGREGACAO_DIARIA * SEC_PER_DAY) + $tolerancia) {
+					return 'Proteção do banco: cálculos separados por dia aceitam no máximo '.
+						self::MAXIMO_DIAS_AGREGACAO_DIARIA.' dias. Selecione um intervalo menor ou use '.
+						'mínimo, máximo, média, soma ou quantidade do período.';
+				}
+
+				$visual = ($configuracao['exibicao'] ?? '')
+					!== CWidgetFieldMetricList::EXIBICAO_RESUMO_HISTORICO;
+				$itens_consultados = [$item_valor];
+				if ($visual) {
+					$itens_consultados = array_merge($itens_consultados, [
+						$card['itens_estado'][$indice] ?? null,
+						$card['itens_complemento'][$indice] ?? null,
+						$card['itens_bloqueio'][$indice] ?? null
+					]);
+				}
+
+				foreach ($itens_consultados as $item_consultado) {
+					if ($item_consultado === null || !$this->itemSuportaHistorico($item_consultado)) {
+						continue;
+					}
+					$item_consultado = $this->aplicarFonteHistorica($item_consultado, $configuracao, $inicio);
+					if ($item_consultado['source'] === 'trends') {
+						if (!($item_consultado['estatisticas_intervalo_completo'] ?? false)) {
+							return 'A métrica “'.($configuracao['rotulo'] ?? '').'” usaria Estatísticas, mas o início '.
+								'do período está fora da retenção de Trends do item. Reduza o período ou aumente a retenção.';
+						}
+						continue;
+					}
+					if ($item_consultado['source'] !== 'history') {
+						continue;
+					}
+					if (!($item_consultado['historico_intervalo_completo'] ?? false)) {
+						return 'A métrica “'.($configuracao['rotulo'] ?? '').'” exige histórico detalhado, mas o '.
+							'início do período já está fora da retenção do item. Use Estatísticas ou, para um contador '.
+							'crescente, troque primeiro/último por máximo/mínimo diário.';
+					}
+
+					$maximo = $visual ? self::MAXIMO_DIAS_VISUAL : self::MAXIMO_DIAS_HISTORICO;
+					if ($duracao > ($maximo * SEC_PER_DAY) + $tolerancia) {
+						return 'Proteção do banco: a métrica “'.($configuracao['rotulo'] ?? '').'” usaria histórico '.
+							'detalhado por mais de '.$maximo.' dias. Use Fonte automática/Estatísticas ou reduza o período.';
+					}
+				}
+			}
+		}
+
+		return '';
+	}
+
+	/**
 	 * PT-BR: Agrega apenas itens numéricos em um número limitado de blocos para
 	 * preservar o pior estado sem carregar todas as amostras do período.
 	 * EN: Aggregates numeric items into a bounded number of buckets to preserve
@@ -587,6 +738,10 @@ class WidgetView extends CControllerDashboardWidgetView {
 			'blocos' => $this->obterQuantidadeBlocosHistoricos($duracao),
 			'itens' => [],
 			'pontos' => [],
+			'itens_ultimos' => [],
+			'ultimos' => [],
+			'itens_resumos' => [],
+			'resumos' => [],
 			'itens_diarios' => [
 				'maximos_diarios' => [],
 				'minimos_diarios' => [],
@@ -618,13 +773,16 @@ class WidgetView extends CControllerDashboardWidgetView {
 					: ($card['itens_estado'][$indice] ?? $item_valor);
 				$item_complemento = $percentual_calculado ? $card['itens_complemento'][$indice] : null;
 				$item_bloqueio = $card['itens_bloqueio'][$indice] ?? null;
+				$exibicao = $configuracao['exibicao'] ?? CWidgetFieldMetricList::EXIBICAO_VALOR;
+				$visual = $exibicao !== CWidgetFieldMetricList::EXIBICAO_RESUMO_HISTORICO;
+				$usa_calculo = $this->usaCalculoHistorico($configuracao);
 				$agregacao = $configuracao['historico_agregacao']
 					?? CWidgetFieldMetricList::AGREGACAO_HISTORICA_SOMA;
 				if ($item_valor !== null && $this->itemSuportaHistorico($item_valor)) {
-					$item_valor['source'] = 'history';
+					$item_valor = $this->aplicarFonteHistorica($item_valor, $configuracao, $inicio);
+					$chave_valor = $this->chaveItemFonte($item_valor);
 					$destinos_diarios = [];
 					if (in_array($agregacao, [
-						CWidgetFieldMetricList::AGREGACAO_HISTORICA_MAXIMO,
 						CWidgetFieldMetricList::AGREGACAO_HISTORICA_SOMA_MAXIMOS_DIARIOS,
 						CWidgetFieldMetricList::AGREGACAO_HISTORICA_MEDIA_MAXIMOS_DIARIOS,
 						CWidgetFieldMetricList::AGREGACAO_HISTORICA_AUMENTO_CONTADOR
@@ -632,7 +790,6 @@ class WidgetView extends CControllerDashboardWidgetView {
 						$destinos_diarios[] = 'maximos_diarios';
 					}
 					if (in_array($agregacao, [
-						CWidgetFieldMetricList::AGREGACAO_HISTORICA_MINIMO,
 						CWidgetFieldMetricList::AGREGACAO_HISTORICA_SOMA_MINIMOS_DIARIOS,
 						CWidgetFieldMetricList::AGREGACAO_HISTORICA_MEDIA_MINIMOS_DIARIOS,
 						CWidgetFieldMetricList::AGREGACAO_HISTORICA_AUMENTO_CONTADOR
@@ -651,52 +808,148 @@ class WidgetView extends CControllerDashboardWidgetView {
 					], true)) {
 						$destinos_diarios[] = 'primeiros_diarios';
 					}
-					foreach ($destinos_diarios as $destino_diario) {
-						$grupo['itens_diarios'][$destino_diario][$item_valor['itemid']] = $item_valor;
+					foreach ($usa_calculo ? $destinos_diarios : [] as $destino_diario) {
+						$grupo['itens_diarios'][$destino_diario][$chave_valor] = $item_valor;
+					}
+
+					$funcoes_resumo = [];
+					switch ($agregacao) {
+						case CWidgetFieldMetricList::AGREGACAO_HISTORICA_SOMA:
+							$funcoes_resumo = [AGGREGATE_SUM];
+							break;
+						case CWidgetFieldMetricList::AGREGACAO_HISTORICA_MEDIA:
+							$funcoes_resumo = [AGGREGATE_SUM, AGGREGATE_COUNT];
+							break;
+						case CWidgetFieldMetricList::AGREGACAO_HISTORICA_QUANTIDADE:
+							$funcoes_resumo = [AGGREGATE_COUNT];
+							break;
+						case CWidgetFieldMetricList::AGREGACAO_HISTORICA_MINIMO:
+							$funcoes_resumo = [AGGREGATE_MIN];
+							break;
+						case CWidgetFieldMetricList::AGREGACAO_HISTORICA_MAXIMO:
+							$funcoes_resumo = [AGGREGATE_MAX];
+							break;
+					}
+					foreach ($usa_calculo ? $funcoes_resumo : [] as $funcao) {
+						$grupo['itens_resumos'][$funcao][$chave_valor] = $item_valor;
 					}
 				}
-				$resumo_sem_blocos = ($configuracao['exibicao'] ?? CWidgetFieldMetricList::EXIBICAO_VALOR)
-						=== CWidgetFieldMetricList::EXIBICAO_RESUMO_HISTORICO
-					&& !in_array($agregacao, [
-						CWidgetFieldMetricList::AGREGACAO_HISTORICA_SOMA,
-						CWidgetFieldMetricList::AGREGACAO_HISTORICA_MEDIA
-					], true);
-				foreach ($resumo_sem_blocos
-						? []
-						: [$item_valor, $item_estado, $item_complemento, $item_bloqueio] as $item) {
+				foreach ($visual ? [$item_valor, $item_estado, $item_complemento, $item_bloqueio] : [] as $item) {
 					if ($item === null || !$this->itemSuportaHistorico($item)) {
 						continue;
 					}
 
-					$item['source'] = 'history';
-					$grupo['itens'][$item['itemid']] = $item;
+					$item = $this->aplicarFonteHistorica($item, $configuracao, $inicio);
+					$chave_item = $this->chaveItemFonte($item);
+					$grupo['itens'][$chave_item] = $item;
+				}
+				foreach ($visual ? [
+					$item_valor,
+					$card['itens_complemento'][$indice] ?? null,
+					$card['itens_estado'][$indice] ?? null,
+					$item_bloqueio
+				] : [] as $item) {
+					if ($item === null) {
+						continue;
+					}
+					$item = $this->aplicarFonteHistorica($item, $configuracao, $inicio);
+					$grupo['itens_ultimos'][$this->chaveItemFonte($item)] = $item;
 				}
 			}
 		}
 
-		if ($grupo['itens']) {
+		foreach (['history', 'trends'] as $fonte) {
+			$itens_fonte = array_values(array_filter(
+				$grupo['itens'],
+				static fn(array $item): bool => $item['source'] === $fonte
+			));
+			if (!$itens_fonte) {
+				continue;
+			}
 			$largura = max(1, $grupo['blocos'] - 1);
 			$resultado = Manager::History()->getGraphAggregationByWidth(
-				array_values($grupo['itens']),
+				$itens_fonte,
 				$grupo['inicio'],
 				$grupo['fim'],
 				$largura
 			);
 
 			foreach ($resultado as $itemid => $dados_item) {
+				$chave = $fonte.':'.$itemid;
 				foreach ($dados_item['data'] ?? [] as $ponto) {
 					$indice = max(0, min($grupo['blocos'] - 1, (int) ($ponto['i'] ?? 0)));
-					$grupo['pontos'][$itemid][$indice] = $ponto;
+					$grupo['pontos'][$chave][$indice] = $ponto;
 				}
 			}
-
 		}
+
+		$this->consultarUltimosDoPeriodo($grupo);
+		$this->consultarResumosDoPeriodo($grupo);
 
 		if (array_filter($grupo['itens_diarios'])) {
 			$this->consultarExtremosDiarios($grupo);
 		}
 
 		return $grupo;
+	}
+
+	/**
+	 * PT-BR: Mantém o valor e o LED coerentes com a fonte escolhida na métrica.
+	 * Em Trends, o último valor disponível representa a média da última hora consolidada.
+	 * EN: Keeps value and LED consistent with the metric's selected source. With trends,
+	 * the latest available value is the average of the latest consolidated hour.
+	 */
+	private function consultarUltimosDoPeriodo(array &$grupo): void {
+		foreach (['history', 'trends'] as $fonte) {
+			$itens = array_values(array_filter(
+				$grupo['itens_ultimos'],
+				static fn(array $item): bool => $item['source'] === $fonte
+			));
+			if (!$itens) {
+				continue;
+			}
+			$resultado = Manager::History()->getAggregatedValues(
+				$itens,
+				AGGREGATE_LAST,
+				$grupo['inicio'],
+				$grupo['fim']
+			) ?? [];
+			foreach ($resultado as $itemid => $ponto) {
+				$grupo['ultimos'][$fonte.':'.$itemid] = $ponto;
+			}
+		}
+	}
+
+	/**
+	 * PT-BR: Obtém soma, quantidade, mínimo e máximo diretamente da fonte escolhida.
+	 * A média é calculada como soma/quantidade para manter a ponderação correta dos trends.
+	 * EN: Retrieves sum, count, minimum, and maximum directly from the selected source.
+	 * Average is calculated as sum/count to preserve proper trend weighting.
+	 */
+	private function consultarResumosDoPeriodo(array &$grupo): void {
+		foreach ($grupo['itens_resumos'] as $funcao => $itens) {
+			foreach (['history', 'trends'] as $fonte) {
+				$itens_fonte = array_values(array_filter(
+					$itens,
+					static fn(array $item): bool => $item['source'] === $fonte
+				));
+				if (!$itens_fonte) {
+					continue;
+				}
+
+				$resultado = Manager::History()->getAggregatedValues(
+					$itens_fonte,
+					(int) $funcao,
+					$grupo['inicio'],
+					$grupo['fim']
+				) ?? [];
+				foreach ($resultado as $itemid => $ponto) {
+					if (isset($ponto['value']) && is_numeric($ponto['value'])) {
+						$grupo['resumos'][$fonte.':'.$itemid][(int) $funcao] = (float) $ponto['value'];
+					}
+				}
+			}
+		}
 	}
 
 	private function obterQuantidadeBlocosHistoricos(int $duracao): int {
@@ -773,20 +1026,25 @@ class WidgetView extends CControllerDashboardWidgetView {
 			AGGREGATE_LAST => 'ultimos_diarios',
 			AGGREGATE_FIRST => 'primeiros_diarios'
 		] as $funcao => $destino) {
-			$itens = array_values($grupo['itens_diarios'][$destino] ?? []);
-			if (!$itens) {
-				continue;
-			}
-			$resultado = Manager::History()->getAggregatedValues(
-				$itens,
-				$funcao,
-				$inicio,
-				$fim
-			) ?? [];
+			foreach (['history', 'trends'] as $fonte) {
+				$itens = array_values(array_filter(
+					$grupo['itens_diarios'][$destino] ?? [],
+					static fn(array $item): bool => $item['source'] === $fonte
+				));
+				if (!$itens) {
+					continue;
+				}
+				$resultado = Manager::History()->getAggregatedValues(
+					$itens,
+					$funcao,
+					$inicio,
+					$fim
+				) ?? [];
 
-			foreach ($resultado as $itemid => $ponto) {
-				if (isset($ponto['value']) && is_numeric($ponto['value'])) {
-					$grupo[$destino][$itemid][$chave] = (float) $ponto['value'];
+				foreach ($resultado as $itemid => $ponto) {
+					if (isset($ponto['value']) && is_numeric($ponto['value'])) {
+						$grupo[$destino][$fonte.':'.$itemid][$chave] = (float) $ponto['value'];
+					}
 				}
 			}
 		}
@@ -805,9 +1063,26 @@ class WidgetView extends CControllerDashboardWidgetView {
 			return null;
 		}
 
-		$pontos_valor = $item_valor !== null
-			? ($grupo['pontos'][$item_valor['itemid']] ?? [])
-			: [];
+		$item_valor_fonte = $item_valor !== null
+			? $this->aplicarFonteHistorica($item_valor, $configuracao, $grupo['inicio'])
+			: null;
+		$item_estado_fonte = $item_estado !== null
+			? $this->aplicarFonteHistorica($item_estado, $configuracao, $grupo['inicio'])
+			: null;
+		$item_complemento_fonte = $item_complemento !== null
+			? $this->aplicarFonteHistorica($item_complemento, $configuracao, $grupo['inicio'])
+			: null;
+		$item_bloqueio_fonte = $item_bloqueio !== null
+			? $this->aplicarFonteHistorica($item_bloqueio, $configuracao, $grupo['inicio'])
+			: null;
+		$chave_valor = $item_valor_fonte !== null ? $this->chaveItemFonte($item_valor_fonte) : null;
+		$chave_estado = $item_estado_fonte !== null ? $this->chaveItemFonte($item_estado_fonte) : null;
+		$chave_complemento = $item_complemento_fonte !== null
+			? $this->chaveItemFonte($item_complemento_fonte)
+			: null;
+		$chave_bloqueio = $item_bloqueio_fonte !== null ? $this->chaveItemFonte($item_bloqueio_fonte) : null;
+
+		$pontos_valor = $chave_valor !== null ? ($grupo['pontos'][$chave_valor] ?? []) : [];
 		$exibicao = $configuracao['exibicao'] ?? CWidgetFieldMetricList::EXIBICAO_VALOR;
 		$exibicao_com_valor = in_array($exibicao, [
 			CWidgetFieldMetricList::EXIBICAO_VALOR_HISTORICO,
@@ -818,10 +1093,11 @@ class WidgetView extends CControllerDashboardWidgetView {
 		$resumo_texto = $usar_valor_calculado
 			? $this->calcularResumoHistorico(
 				$pontos_valor,
-				$item_valor !== null ? ($grupo['maximos_diarios'][$item_valor['itemid']] ?? []) : [],
-				$item_valor !== null ? ($grupo['minimos_diarios'][$item_valor['itemid']] ?? []) : [],
-				$item_valor !== null ? ($grupo['ultimos_diarios'][$item_valor['itemid']] ?? []) : [],
-				$item_valor !== null ? ($grupo['primeiros_diarios'][$item_valor['itemid']] ?? []) : [],
+				$chave_valor !== null ? ($grupo['resumos'][$chave_valor] ?? []) : [],
+				$chave_valor !== null ? ($grupo['maximos_diarios'][$chave_valor] ?? []) : [],
+				$chave_valor !== null ? ($grupo['minimos_diarios'][$chave_valor] ?? []) : [],
+				$chave_valor !== null ? ($grupo['ultimos_diarios'][$chave_valor] ?? []) : [],
+				$chave_valor !== null ? ($grupo['primeiros_diarios'][$chave_valor] ?? []) : [],
 				$item_valor,
 				$configuracao
 			)
@@ -833,15 +1109,11 @@ class WidgetView extends CControllerDashboardWidgetView {
 		}
 
 		$cores = $this->obterCoresHistoricas($configuracao, $cores_globais);
-		$pontos_estado = $item_estado !== null
-			? ($grupo['pontos'][$item_estado['itemid']] ?? [])
+		$pontos_estado = $chave_estado !== null ? ($grupo['pontos'][$chave_estado] ?? []) : [];
+		$pontos_complemento = $chave_complemento !== null
+			? ($grupo['pontos'][$chave_complemento] ?? [])
 			: [];
-		$pontos_complemento = $item_complemento !== null
-			? ($grupo['pontos'][$item_complemento['itemid']] ?? [])
-			: [];
-		$pontos_bloqueio = $item_bloqueio !== null
-			? ($grupo['pontos'][$item_bloqueio['itemid']] ?? [])
-			: [];
+		$pontos_bloqueio = $chave_bloqueio !== null ? ($grupo['pontos'][$chave_bloqueio] ?? []) : [];
 		$bloqueio_configurado = ($configuracao['padroes_bloqueio'] ?? []) !== [];
 		$percentual_calculado = (int) ($configuracao['estado_percentual_calculado'] ?? 0) === 1;
 		$segmentos = [];
@@ -973,8 +1245,9 @@ class WidgetView extends CControllerDashboardWidgetView {
 	 * PT-BR: Calcula o resumo escolhido reutilizando blocos compactos e agregados diários exatos.
 	 * EN: Calculates the selected summary from compact buckets and exact daily aggregates.
 	 */
-	private function calcularResumoHistorico(array $pontos, array $maximos_diarios, array $minimos_diarios,
-			array $ultimos_diarios, array $primeiros_diarios, ?array $item, array $configuracao): string {
+	private function calcularResumoHistorico(array $pontos, array $resumos, array $maximos_diarios,
+			array $minimos_diarios, array $ultimos_diarios, array $primeiros_diarios, ?array $item,
+			array $configuracao): string {
 		if ($item === null) {
 			return 'Sem dados';
 		}
@@ -1003,15 +1276,22 @@ class WidgetView extends CControllerDashboardWidgetView {
 			?? CWidgetFieldMetricList::AGREGACAO_HISTORICA_SOMA;
 		switch ($agregacao) {
 			case CWidgetFieldMetricList::AGREGACAO_HISTORICA_MEDIA:
-				$valor = $quantidade > 0 ? $soma / $quantidade : null;
+				$quantidade_exata = $resumos[AGGREGATE_COUNT] ?? 0;
+				$valor = $quantidade_exata > 0 && isset($resumos[AGGREGATE_SUM])
+					? (float) $resumos[AGGREGATE_SUM] / (float) $quantidade_exata
+					: ($quantidade > 0 ? $soma / $quantidade : null);
+				break;
+
+			case CWidgetFieldMetricList::AGREGACAO_HISTORICA_QUANTIDADE:
+				$valor = $resumos[AGGREGATE_COUNT] ?? null;
 				break;
 
 			case CWidgetFieldMetricList::AGREGACAO_HISTORICA_MINIMO:
-				$valor = $minimos_diarios ? min($minimos_diarios) : $minimo;
+				$valor = $resumos[AGGREGATE_MIN] ?? $minimo;
 				break;
 
 			case CWidgetFieldMetricList::AGREGACAO_HISTORICA_MAXIMO:
-				$valor = $maximos_diarios ? max($maximos_diarios) : $maximo;
+				$valor = $resumos[AGGREGATE_MAX] ?? $maximo;
 				break;
 
 			case CWidgetFieldMetricList::AGREGACAO_HISTORICA_SOMA_MAXIMOS_DIARIOS:
@@ -1059,14 +1339,22 @@ class WidgetView extends CControllerDashboardWidgetView {
 
 			case CWidgetFieldMetricList::AGREGACAO_HISTORICA_SOMA:
 			default:
-				$valor = $quantidade > 0 ? $soma : null;
+				$valor = $resumos[AGGREGATE_SUM] ?? ($quantidade > 0 ? $soma : null);
 		}
 
 		if ($valor === null) {
 			return 'Sem dados';
 		}
 
-		return $this->formatarValor($valor, $item, $configuracao);
+		$item_formatacao = $item;
+		if ($agregacao === CWidgetFieldMetricList::AGREGACAO_HISTORICA_QUANTIDADE) {
+			$item_formatacao['units'] = '';
+			$configuracao['formato'] = CWidgetFieldMetricList::FORMATO_NUMERO;
+			$configuracao['decimais'] = 0;
+			$configuracao['sufixo'] = '';
+		}
+
+		return $this->formatarValor($valor, $item_formatacao, $configuracao);
 	}
 
 	/**
@@ -1342,6 +1630,15 @@ class WidgetView extends CControllerDashboardWidgetView {
 		return implode("\n", $linhas);
 	}
 
+	private function obterUltimoDaFonte(?array $item, array $configuracao, array $grupo, ?array $padrao): ?array {
+		if ($item === null) {
+			return null;
+		}
+
+		$item = $this->aplicarFonteHistorica($item, $configuracao, $grupo['inicio']);
+		return $grupo['ultimos'][$this->chaveItemFonte($item)] ?? $padrao;
+	}
+
 	private function montarCards(array $cards, array $linhas, array $historico, array $historicos_agregados,
 			array $cores_globais): array {
 		$resultado = [];
@@ -1383,6 +1680,29 @@ class WidgetView extends CControllerDashboardWidgetView {
 						&& isset($historico[$item_bloqueio['itemid']][0])
 					? $historico[$item_bloqueio['itemid']][0]
 					: null;
+				$exibicao = $configuracao['exibicao'] ?? CWidgetFieldMetricList::EXIBICAO_VALOR;
+				if ($exibicao !== CWidgetFieldMetricList::EXIBICAO_VALOR
+						&& $exibicao !== CWidgetFieldMetricList::EXIBICAO_RESUMO_HISTORICO) {
+					$amostra = $this->obterUltimoDaFonte($item, $configuracao, $historicos_agregados, $amostra);
+					$amostra_complemento = $this->obterUltimoDaFonte(
+						$item_complemento,
+						$configuracao,
+						$historicos_agregados,
+						$amostra_complemento
+					);
+					$amostra_estado = $this->obterUltimoDaFonte(
+						$item_estado,
+						$configuracao,
+						$historicos_agregados,
+						$amostra_estado
+					);
+					$amostra_bloqueio = $this->obterUltimoDaFonte(
+						$item_bloqueio,
+						$configuracao,
+						$historicos_agregados,
+						$amostra_bloqueio
+					);
+				}
 				$linha = $this->montarLinha(
 					$configuracao,
 					$item,
@@ -1392,7 +1712,7 @@ class WidgetView extends CControllerDashboardWidgetView {
 					$amostra_estado,
 					$amostra_bloqueio
 				);
-				$linha['exibicao'] = $configuracao['exibicao'] ?? CWidgetFieldMetricList::EXIBICAO_VALOR;
+				$linha['exibicao'] = $exibicao;
 				$linha['historico'] = null;
 				if ($linha['exibicao'] !== CWidgetFieldMetricList::EXIBICAO_VALOR) {
 					$percentual_calculado = (int) ($configuracao['estado_percentual_calculado'] ?? 0) === 1;

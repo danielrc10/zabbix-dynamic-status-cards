@@ -390,6 +390,27 @@ $grade_formatacao->addItem([
 	))->addClass('js-historico')
 ]);
 
+$rotulo_fonte_historica = (new CLabel('Fonte dos dados históricos', 'historico_fonte'))
+	->addClass('js-historico');
+$rotulo_fonte_historica->setHint(makeHelpIcon(
+	'Automática usa o histórico detalhado quando todo o intervalo ainda está retido e troca para as estatísticas '.
+	'horárias em períodos antigos. Primeiro e último valores exatos sempre exigem histórico detalhado.'
+));
+$grade_formatacao->addItem([
+	$rotulo_fonte_historica,
+	(new CFormField(
+		(new CSelect('historico_fonte'))
+			->setId('historico_fonte')
+			->setValue($data['historico_fonte'])
+			->addOptions(CSelect::createOptionsFromArray([
+				CWidgetFieldMetricList::FONTE_HISTORICA_AUTO
+					=> 'Automática (histórico recente / estatísticas antigas)',
+				CWidgetFieldMetricList::FONTE_HISTORICA_HISTORY => 'Histórico detalhado',
+				CWidgetFieldMetricList::FONTE_HISTORICA_TRENDS => 'Estatísticas horárias'
+			]))
+	))->addClass('js-historico')
+]);
+
 $grade_formatacao->addItem([
 	(new CLabel('Valor exibido acima do histórico', 'historico_valor_calculado'))
 		->addClass('js-historico-com-valor'),
@@ -419,6 +440,7 @@ $grade_formatacao->addItem([
 			->addOptions(CSelect::createOptionsFromArray([
 				CWidgetFieldMetricList::AGREGACAO_HISTORICA_SOMA => 'Soma de todas as amostras',
 				CWidgetFieldMetricList::AGREGACAO_HISTORICA_MEDIA => 'Média de todas as amostras',
+				CWidgetFieldMetricList::AGREGACAO_HISTORICA_QUANTIDADE => 'Quantidade de amostras',
 				CWidgetFieldMetricList::AGREGACAO_HISTORICA_MINIMO => 'Menor valor do período',
 				CWidgetFieldMetricList::AGREGACAO_HISTORICA_MAXIMO => 'Maior valor do período',
 				CWidgetFieldMetricList::AGREGACAO_HISTORICA_SOMA_MAXIMOS_DIARIOS
@@ -446,7 +468,10 @@ $grade_formatacao->addItem([
 $grade_formatacao->addItem([
 	(new CLabel('Atenção'))->addClass('js-historico'),
 	(new CFormField(
-		(new CSpan('Barras e gráficos aceitam até 7 dias. Para períodos maiores, use o resumo somente texto.'))
+		(new CSpan(
+			'No modo automático, dados recentes usam histórico e períodos antigos usam estatísticas. Consultas '.
+			'detalhadas continuam limitadas a 7 dias em barras/gráficos e 31 dias em resumos.'
+		))
 			->addClass(ZBX_STYLE_COLOR_WARNING)
 	))->addClass('js-historico')
 ]);
