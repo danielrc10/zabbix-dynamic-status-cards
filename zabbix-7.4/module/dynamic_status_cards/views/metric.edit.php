@@ -390,11 +390,12 @@ $grade_formatacao->addItem([
 	))->addClass('js-historico')
 ]);
 
-$rotulo_fonte_historica = (new CLabel('Fonte dos dados históricos', 'historico_fonte'))
+$rotulo_fonte_historica = (new CLabel('Origem dos dados', 'historico_fonte'))
 	->addClass('js-historico');
 $rotulo_fonte_historica->setHint(makeHelpIcon(
-	'Automática usa o histórico detalhado quando todo o intervalo ainda está retido e troca para as estatísticas '.
-	'horárias em períodos antigos. Primeiro e último valores exatos sempre exigem histórico detalhado.'
+	'Automático usa dados detalhados em intervalos curtos e dados consolidados acima do limite configurado no '.
+	'widget. Dados detalhados correspondem a History; dados consolidados, a Trends. Primeiro e último valores '.
+	'exatos exigem dados detalhados.'
 ));
 $grade_formatacao->addItem([
 	$rotulo_fonte_historica,
@@ -403,10 +404,9 @@ $grade_formatacao->addItem([
 			->setId('historico_fonte')
 			->setValue($data['historico_fonte'])
 			->addOptions(CSelect::createOptionsFromArray([
-				CWidgetFieldMetricList::FONTE_HISTORICA_AUTO
-					=> 'Automática (histórico recente / estatísticas antigas)',
-				CWidgetFieldMetricList::FONTE_HISTORICA_HISTORY => 'Histórico detalhado',
-				CWidgetFieldMetricList::FONTE_HISTORICA_TRENDS => 'Estatísticas horárias'
+				CWidgetFieldMetricList::FONTE_HISTORICA_AUTO => 'Automático (recomendado)',
+				CWidgetFieldMetricList::FONTE_HISTORICA_HISTORY => 'Dados detalhados — cada coleta',
+				CWidgetFieldMetricList::FONTE_HISTORICA_TRENDS => 'Dados consolidados — mais leves'
 			]))
 	))->addClass('js-historico')
 ]);
@@ -429,7 +429,8 @@ $rotulo_agregacao_historica = (new CLabel('Cálculo do valor histórico', 'histo
 	->addClass('js-historico-resumo');
 $rotulo_agregacao_historica->setHint(makeHelpIcon(
 	'Use soma das amostras para eventos incrementais. Para um contador diário como “ligações hoje”, use soma dos '.
-	'últimos valores de cada dia. Maior/menor e primeiro/último possuem opções simétricas de soma e média.'
+	'maiores valores de cada dia com dados consolidados. “Aumento do contador” soma máximo menos mínimo de cada '.
+	'dia. Maior/menor e primeiro/último possuem opções simétricas de soma e média.'
 ));
 $grade_formatacao->addItem([
 	$rotulo_agregacao_historica,
@@ -466,23 +467,25 @@ $grade_formatacao->addItem([
 ]);
 
 $grade_formatacao->addItem([
-	(new CLabel('Atenção'))->addClass('js-historico'),
-	(new CFormField(
-		(new CSpan(
-			'No modo automático, dados recentes usam histórico e períodos antigos usam estatísticas. Consultas '.
-			'detalhadas continuam limitadas a 7 dias em barras/gráficos e 31 dias em resumos.'
+	(new CLabel('Proteção da consulta'))
+		->setHint(makeHelpIcon(
+			'Automático usa cada coleta somente até o limite definido no widget e depois usa dados consolidados. '.
+			'Barras e gráficos aceitam até 7 dias; cálculos diários, até 31 dias.'
 		))
+		->addClass('js-historico'),
+	(new CFormField(
+		(new CSpan('Limites seguros são aplicados antes de consultar o banco.'))
 			->addClass(ZBX_STYLE_COLOR_WARNING)
 	))->addClass('js-historico')
 ]);
 
 $grade_formatacao->addItem([
-	(new CLabel('Percentual acima do histórico'))->addClass('js-historico-visual'),
+	(new CLabel('Resumo percentual do histórico'))->addClass('js-historico-visual'),
 	(new CFormField(
 		(new CCheckBox('historico_mostrar_percentual'))
 			->setChecked((int) $data['historico_mostrar_percentual'] === 1)
 			->setUncheckedValue('0')
-			->setLabel('Mostrar 100,00% disponibilidade ou OK')
+			->setLabel('Exibir disponibilidade (%) ou percentual de estados OK')
 	))->addClass('js-historico-visual')
 ]);
 

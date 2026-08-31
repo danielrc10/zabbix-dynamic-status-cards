@@ -40,6 +40,8 @@ class WidgetView extends CControllerDashboardWidgetView {
 	private const MAXIMO_DIAS_VISUAL = 7;
 	private const MAXIMO_DIAS_ESTATISTICAS = 365;
 	private const MAXIMO_DIAS_AGREGACAO_DIARIA = 31;
+	private const LIMITE_DADOS_DETALHADOS_HORAS_PADRAO = 24;
+	private const LIMITE_DADOS_DETALHADOS_HORAS_MAXIMO = 168;
 
 	private const ESTADOS = [
 		'neutro' => 0,
@@ -577,7 +579,7 @@ class WidgetView extends CControllerDashboardWidgetView {
 	 * PT-BR: Decide a fonte por item reutilizando a mesma regra nativa do frontend Zabbix.
 	 * EN: Selects each item's source using the same native rule as the Zabbix frontend.
 	 */
-	private function aplicarFonteHistorica(array $item, array $configuracao, int $inicio): array {
+	private function aplicarFonteHistorica(array $item, array $configuracao, int $inicio, int $fim): array {
 		if (isset($item['source']) && in_array($item['source'], ['history', 'trends'], true)) {
 			return $item;
 		}
@@ -595,7 +597,9 @@ class WidgetView extends CControllerDashboardWidgetView {
 			&& time() - (int) $item['trends'] <= $inicio + SEC_PER_HOUR;
 		$fonte = $configuracao['historico_fonte'] ?? CWidgetFieldMetricList::FONTE_HISTORICA_AUTO;
 		if ($fonte === CWidgetFieldMetricList::FONTE_HISTORICA_AUTO) {
-			$item['source'] = $fonte_automatica;
+			$item['source'] = max(0, $fim - $inicio) > $this->obterLimiteDadosDetalhadosSegundos()
+				? 'trends'
+				: $fonte_automatica;
 			if ($this->agregacaoExigeHistoricoExato($configuracao)) {
 				$item['source'] = 'history';
 			}
@@ -607,6 +611,15 @@ class WidgetView extends CControllerDashboardWidgetView {
 		}
 
 		return $item;
+	}
+
+	private function obterLimiteDadosDetalhadosSegundos(): int {
+		$horas = max(1, min(self::LIMITE_DADOS_DETALHADOS_HORAS_MAXIMO, (int) (
+			$this->fields_values['limite_dados_detalhados_horas']
+				?? self::LIMITE_DADOS_DETALHADOS_HORAS_PADRAO
+		)));
+
+		return $horas * SEC_PER_HOUR;
 	}
 
 	private function usaCalculoHistorico(array $configuracao): bool {
@@ -650,8 +663,8 @@ class WidgetView extends CControllerDashboardWidgetView {
 	}
 
 	/**
-	 * PT-BR: Bloqueia somente as combinações realmente pesadas. Estatísticas compactas
-	 * podem cobrir períodos longos; histórico detalhado mantém limites conservadores.
+	 * PT-BR: Bloqueia somente as combinações realmente pesadas. Dados consolidados
+	 * podem cobrir períodos longos; dados detalhados mantêm limites conservadores.
 	 * EN: Blocks only actually expensive combinations. Compact trends may span long
 	 * periods, while detailed history retains conservative limits.
 	 */
@@ -695,10 +708,15 @@ class WidgetView extends CControllerDashboardWidgetView {
 					if ($item_consultado === null || !$this->itemSuportaHistorico($item_consultado)) {
 						continue;
 					}
-					$item_consultado = $this->aplicarFonteHistorica($item_consultado, $configuracao, $inicio);
+					$item_consultado = $this->aplicarFonteHistorica(
+						$item_consultado,
+						$configuracao,
+						$inicio,
+						$fim
+					);
 					if ($item_consultado['source'] === 'trends') {
 						if (!($item_consultado['estatisticas_intervalo_completo'] ?? false)) {
-							return 'A métrica “'.($configuracao['rotulo'] ?? '').'” usaria Estatísticas, mas o início '.
+							return 'A métrica “'.($configuracao['rotulo'] ?? '').'” usaria dados consolidados, mas o início '.
 								'do período está fora da retenção de Trends do item. Reduza o período ou aumente a retenção.';
 						}
 						continue;
@@ -706,16 +724,25 @@ class WidgetView extends CControllerDashboardWidgetView {
 					if ($item_consultado['source'] !== 'history') {
 						continue;
 					}
+					if ($duracao > $this->obterLimiteDadosDetalhadosSegundos() + 60) {
+						$limite_horas = (int) ($this->obterLimiteDadosDetalhadosSegundos() / SEC_PER_HOUR);
+						$complemento = $this->agregacaoExigeHistoricoExato($configuracao)
+							? ' Primeiro/último exatos não existem nos dados consolidados; para contadores crescentes, '.
+								'use maior/menor valor diário.'
+							: ' Selecione Automático ou Dados consolidados, ou aumente conscientemente esse limite.';
+						return 'Proteção do banco: a métrica “'.($configuracao['rotulo'] ?? '').'” usaria dados '.
+							'detalhados por mais de '.$limite_horas.' horas.'.$complemento;
+					}
 					if (!($item_consultado['historico_intervalo_completo'] ?? false)) {
-						return 'A métrica “'.($configuracao['rotulo'] ?? '').'” exige histórico detalhado, mas o '.
-							'início do período já está fora da retenção do item. Use Estatísticas ou, para um contador '.
+						return 'A métrica “'.($configuracao['rotulo'] ?? '').'” exige dados detalhados, mas o '.
+							'início do período já está fora da retenção do item. Use Dados consolidados ou, para um contador '.
 							'crescente, troque primeiro/último por máximo/mínimo diário.';
 					}
 
 					$maximo = $visual ? self::MAXIMO_DIAS_VISUAL : self::MAXIMO_DIAS_HISTORICO;
 					if ($duracao > ($maximo * SEC_PER_DAY) + $tolerancia) {
-						return 'Proteção do banco: a métrica “'.($configuracao['rotulo'] ?? '').'” usaria histórico '.
-							'detalhado por mais de '.$maximo.' dias. Use Fonte automática/Estatísticas ou reduza o período.';
+						return 'Proteção do banco: a métrica “'.($configuracao['rotulo'] ?? '').'” usaria dados '.
+							'detalhados por mais de '.$maximo.' dias. Use Automático/Dados consolidados ou reduza o período.';
 					}
 				}
 			}
@@ -779,7 +806,7 @@ class WidgetView extends CControllerDashboardWidgetView {
 				$agregacao = $configuracao['historico_agregacao']
 					?? CWidgetFieldMetricList::AGREGACAO_HISTORICA_SOMA;
 				if ($item_valor !== null && $this->itemSuportaHistorico($item_valor)) {
-					$item_valor = $this->aplicarFonteHistorica($item_valor, $configuracao, $inicio);
+					$item_valor = $this->aplicarFonteHistorica($item_valor, $configuracao, $inicio, $fim);
 					$chave_valor = $this->chaveItemFonte($item_valor);
 					$destinos_diarios = [];
 					if (in_array($agregacao, [
@@ -839,7 +866,7 @@ class WidgetView extends CControllerDashboardWidgetView {
 						continue;
 					}
 
-					$item = $this->aplicarFonteHistorica($item, $configuracao, $inicio);
+					$item = $this->aplicarFonteHistorica($item, $configuracao, $inicio, $fim);
 					$chave_item = $this->chaveItemFonte($item);
 					$grupo['itens'][$chave_item] = $item;
 				}
@@ -852,7 +879,7 @@ class WidgetView extends CControllerDashboardWidgetView {
 					if ($item === null) {
 						continue;
 					}
-					$item = $this->aplicarFonteHistorica($item, $configuracao, $inicio);
+					$item = $this->aplicarFonteHistorica($item, $configuracao, $inicio, $fim);
 					$grupo['itens_ultimos'][$this->chaveItemFonte($item)] = $item;
 				}
 			}
@@ -1064,16 +1091,16 @@ class WidgetView extends CControllerDashboardWidgetView {
 		}
 
 		$item_valor_fonte = $item_valor !== null
-			? $this->aplicarFonteHistorica($item_valor, $configuracao, $grupo['inicio'])
+			? $this->aplicarFonteHistorica($item_valor, $configuracao, $grupo['inicio'], $grupo['fim'])
 			: null;
 		$item_estado_fonte = $item_estado !== null
-			? $this->aplicarFonteHistorica($item_estado, $configuracao, $grupo['inicio'])
+			? $this->aplicarFonteHistorica($item_estado, $configuracao, $grupo['inicio'], $grupo['fim'])
 			: null;
 		$item_complemento_fonte = $item_complemento !== null
-			? $this->aplicarFonteHistorica($item_complemento, $configuracao, $grupo['inicio'])
+			? $this->aplicarFonteHistorica($item_complemento, $configuracao, $grupo['inicio'], $grupo['fim'])
 			: null;
 		$item_bloqueio_fonte = $item_bloqueio !== null
-			? $this->aplicarFonteHistorica($item_bloqueio, $configuracao, $grupo['inicio'])
+			? $this->aplicarFonteHistorica($item_bloqueio, $configuracao, $grupo['inicio'], $grupo['fim'])
 			: null;
 		$chave_valor = $item_valor_fonte !== null ? $this->chaveItemFonte($item_valor_fonte) : null;
 		$chave_estado = $item_estado_fonte !== null ? $this->chaveItemFonte($item_estado_fonte) : null;
@@ -1635,7 +1662,7 @@ class WidgetView extends CControllerDashboardWidgetView {
 			return null;
 		}
 
-		$item = $this->aplicarFonteHistorica($item, $configuracao, $grupo['inicio']);
+		$item = $this->aplicarFonteHistorica($item, $configuracao, $grupo['inicio'], $grupo['fim']);
 		return $grupo['ultimos'][$this->chaveItemFonte($item)] ?? $padrao;
 	}
 

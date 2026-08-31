@@ -154,11 +154,11 @@ class CWidgetFieldMetricListView extends CWidgetFieldView {
 				!== CWidgetFieldMetricList::EXIBICAO_VALOR) {
 			$resumo .= ' · período do dashboard';
 			$fontes = [
-				CWidgetFieldMetricList::FONTE_HISTORICA_AUTO => 'fonte automática',
-				CWidgetFieldMetricList::FONTE_HISTORICA_HISTORY => 'histórico',
-				CWidgetFieldMetricList::FONTE_HISTORICA_TRENDS => 'estatísticas'
+				CWidgetFieldMetricList::FONTE_HISTORICA_AUTO => 'origem automática',
+				CWidgetFieldMetricList::FONTE_HISTORICA_HISTORY => 'dados detalhados',
+				CWidgetFieldMetricList::FONTE_HISTORICA_TRENDS => 'dados consolidados'
 			];
-			$resumo .= ' · '.($fontes[$metrica['historico_fonte'] ?? ''] ?? 'fonte automática');
+			$resumo .= ' · '.($fontes[$metrica['historico_fonte'] ?? ''] ?? 'origem automática');
 			$usa_calculo = ($metrica['exibicao'] ?? '') === CWidgetFieldMetricList::EXIBICAO_RESUMO_HISTORICO
 				|| ((int) ($metrica['historico_valor_calculado'] ?? 0) === 1
 					&& in_array($metrica['exibicao'] ?? '', [

@@ -185,6 +185,16 @@ class WidgetForm extends CWidgetForm {
 					->setFlags(CWidgetField::FLAG_NOT_EMPTY)
 			)
 			->addField(
+				(new CWidgetFieldIntegerBox(
+					'limite_dados_detalhados_horas',
+					'Usar dados consolidados acima de (horas)',
+					1,
+					168
+				))
+					->setDefault(24)
+					->setFlags(CWidgetField::FLAG_NOT_EMPTY)
+			)
+			->addField(
 				(new CWidgetFieldColor('cor_ok', 'Cor OK'))->setDefault('2ECA8B')
 			)
 			->addField(

@@ -378,11 +378,11 @@ window.widget_form = new class extends CWidgetForm {
 		if ((data.exibicao ?? 'valor') !== 'valor') {
 			summary += ' · período do dashboard';
 			const source_labels = {
-				auto: 'fonte automática',
-				history: 'histórico',
-				trends: 'estatísticas'
+				auto: 'origem automática',
+				history: 'dados detalhados',
+				trends: 'dados consolidados'
 			};
-			summary += ` · ${source_labels[data.historico_fonte] ?? 'fonte automática'}`;
+			summary += ` · ${source_labels[data.historico_fonte] ?? 'origem automática'}`;
 			const uses_calculation = data.exibicao === 'resumo_historico'
 				|| (Number(data.historico_valor_calculado ?? 0) === 1
 					&& ['valor_historico', 'valor_grafico'].includes(data.exibicao));

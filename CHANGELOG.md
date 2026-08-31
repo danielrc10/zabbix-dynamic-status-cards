@@ -1,5 +1,23 @@
 # Histórico de versões / Changelog
 
+## 1.20.1 — 2026-08-31
+
+### Português
+
+- Faz o modo Automático trocar para dados consolidados acima de 24 horas, mesmo quando cada coleta ainda está retida.
+- Adiciona ao widget um limite configurável de 1 a 168 horas para consultas detalhadas.
+- Bloqueia dados detalhados acima desse limite antes de consultar o banco e orienta o uso de máximo/mínimo diário para contadores.
+- Renomeia as opções da interface para Dados detalhados e Dados consolidados, mantendo History e Trends apenas na ajuda técnica.
+- Corrige a sobreposição do aviso no editor e torna mais claro o resumo percentual do histórico.
+
+### English
+
+- Makes Automatic mode switch to consolidated data above 24 hours even while every sample is still retained.
+- Adds a configurable 1-to-168-hour detailed-query threshold to the widget.
+- Blocks detailed data above that threshold before querying and recommends daily maxima/minima for counters.
+- Renames UI options to Detailed data and Consolidated data, keeping History and Trends in technical help only.
+- Fixes the editor warning overlap and clarifies the historical percentage summary.
+
 ## 1.20.0 — 2026-08-31
 
 ### Português

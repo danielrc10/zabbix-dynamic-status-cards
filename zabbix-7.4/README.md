@@ -2,7 +2,7 @@
 
 [Português](#português) · [English](#english)
 
-> Zabbix 7.4 · Módulo 1.20.0 · Histórico e estatísticas automáticos · Agregações seguras · 66 ícones
+> Zabbix 7.4 · Módulo 1.20.1 · Dados detalhados e consolidados automáticos · Agregações seguras · 66 ícones
 
 ## Português
 
@@ -84,7 +84,7 @@ Em **Item complementar**, o campo **Texto entre os valores** aceita qualquer tex
 
 Para itens que armazenam percentual como fração, selecione **Percentual (fração × 100)**. Assim, `0.4475` é exibido como `44,75%` com duas casas decimais. O número de casas é configurável; os limiares atuais e históricos baseados no item principal também usam a escala percentual. O formato explícito evita alterar automaticamente itens cujo valor correto realmente seja `0,4475%`.
 
-**Nome da métrica no card** agora usa uma escolha explícita entre **Mostrar** e **Ocultar**. Para deixar uma linha histórica somente com a barra e o eixo, selecione **Ocultar** e desmarque **Mostrar 100,00% disponibilidade ou OK**.
+**Nome da métrica no card** agora usa uma escolha explícita entre **Mostrar** e **Ocultar**. Para deixar uma linha histórica somente com a barra e o eixo, selecione **Ocultar** e desmarque **Exibir disponibilidade (%) ou percentual de estados OK**.
 
 As cores de OK, aviso, crítico e sem dados são configuradas no formulário principal do widget. Em **Indicador do cabeçalho**, escolha também o LED ou qualquer SVG da biblioteca para representar o estado geral no topo de todos os cards. Esse indicador é independente dos ícones das métricas e recebe a cor do pior estado encontrado no card.
 
@@ -92,7 +92,7 @@ As cores de OK, aviso, crítico e sem dados são configuradas no formulário pri
 
 **Largura máxima de cada card** evita que poucos resultados ocupem toda a largura de um widget grande. O padrão é `320 px`, configurável entre `160` e `1000 px`. Esse limite não restringe a quantidade de hosts: novos cards continuam sendo adicionados automaticamente em colunas e linhas, alinhados a partir do início do widget.
 
-**Período máximo consultado** protege o banco contra seleções acidentais muito extensas. O padrão é `365 dias`, configurável de `1` a `365`. A fonte **Histórico detalhado** continua limitada a `7 dias` em barras/gráficos e `31 dias` em resumos. Consultas com **Estatísticas horárias** podem usar o limite geral; cálculos separados por dia aceitam até `31 dias`. Se o período ultrapassar o limite aplicável, nenhuma consulta é executada e o widget nunca trunca o intervalo silenciosamente.
+**Período máximo consultado** protege o banco contra seleções acidentais muito extensas. O padrão é `365 dias`, configurável de `1` a `365`. Em **Usar dados consolidados acima de**, o padrão de `24 horas` impede que períodos maiores consultem milhares de coletas detalhadas. Dados consolidados podem usar o limite geral; cálculos separados por dia aceitam até `31 dias`. Se o período ultrapassar o limite aplicável, nenhuma consulta é executada e o widget nunca trunca o intervalo silenciosamente.
 
 As linhas de cards ocupam toda a altura fornecida ao widget, evitando a faixa vazia inferior. Quando o retângulo fica menor, o conteúdo interno é reduzido proporcionalmente e os cards são redistribuídos entre linhas e colunas; o widget não cria rolagem horizontal nem vertical. Com muitos hosts em uma área muito pequena, os textos naturalmente ficam menores, portanto aumente o widget quando precisar priorizar leitura.
 
@@ -102,7 +102,7 @@ Na janela **Editar métrica**, o campo **Modo de exibição** permite mostrar so
 
 O período vem sempre do **seletor global de tempo do dashboard**. Ao navegar entre horas, dias ou datas absolutas, todas as visualizações e resumos são recalculados no intervalo escolhido. Relatórios agendados com **Ontem** usam o intervalo de ontem. O eixo mostra início, ponto médio e fim; quando o fim está no presente, mostra **Agora**.
 
-Em **Fonte dos dados históricos**, escolha **Automática** para seguir a retenção efetiva do item e as substituições globais do Housekeeping. Se todo o início do intervalo ainda estiver no histórico, o widget usa as amostras detalhadas; caso contrário, usa as estatísticas horárias para todo o intervalo. Também é possível forçar **Histórico detalhado** ou **Estatísticas horárias** por métrica. Assim, a configuração recomendada é histórico `7d`, estatísticas `365d` e fonte automática. Em Trends, o “último valor” visual corresponde à média da última hora já consolidada.
+Em **Origem dos dados**, escolha **Automático (recomendado)**. Até o limite configurado — `24 horas` por padrão — o widget usa cada coleta se ela ainda estiver retida. Acima dele, usa dados consolidados mesmo que o histórico detalhado ainda exista. Também é possível forçar **Dados detalhados — cada coleta** ou **Dados consolidados — mais leves** por métrica. Internamente, esses dados correspondem a History e Trends do Zabbix. Em Trends, o “último valor” visual corresponde à média da última hora já consolidada.
 
 Nos modos **Valor + barra histórica** e **Valor + gráfico histórico**, o campo **Valor exibido acima do histórico** permite manter a última amostra ou exibir o resultado de qualquer cálculo histórico: soma, média, mínimo, máximo, agregações diárias ou aumento do contador. O LED continua representando a última amostra; somente o texto numérico acima da visualização é substituído.
 
@@ -120,7 +120,7 @@ As cinco cores do histórico podem herdar a paleta do widget ou ser personalizad
 
 O resumo opcional mostra **disponibilidade** quando existe um item de disponibilidade ou o percentual de blocos **OK** nos demais casos. Blocos sem dados não entram no denominador. Passe o mouse sobre uma faixa para ver período, estado, mínimo, média e máximo.
 
-A visualização histórica exige um item numérico para determinar o estado. Estatísticas armazenam por hora mínimo, máximo, média e quantidade, reduzindo fortemente o volume consultado. Primeiro e último valores exatos não existem em Trends; quando esses cálculos são selecionados no modo automático, o widget mantém o histórico detalhado. Para um contador que somente cresce e reinicia diariamente, use o **máximo diário** como equivalente leve ao último valor do dia.
+A visualização histórica exige um item numérico para determinar o estado. Trends armazenam mínimo, máximo, média e quantidade consolidados, reduzindo fortemente o volume consultado. Primeiro e último valores exatos não existem em Trends; acima do limite de dados detalhados esses cálculos são bloqueados antes da consulta. Para um contador que somente cresce e reinicia diariamente, use o **máximo diário** como equivalente leve ao último valor do dia.
 
 ### Resumo histórico somente em texto
 
@@ -303,7 +303,7 @@ For complementary items, **Texto entre os valores** accepts any short text. Use 
 
 For items that store a percentage as a fraction, select **Percentual (fração × 100)**. For example, `0.4475` becomes `44,75%` when two decimal places are configured. Current and historical thresholds based on the primary item use the same percentage scale. Making this format explicit prevents legitimate `0.4475%` values from being changed automatically.
 
-**Nome da métrica no card** now uses an explicit **Mostrar** or **Ocultar** selection. To render only the historical bar and time axis, select **Ocultar** and disable **Mostrar 100,00% disponibilidade ou OK**.
+**Nome da métrica no card** now uses an explicit **Mostrar** or **Ocultar** selection. To render only the historical bar and time axis, select **Ocultar** and disable **Exibir disponibilidade (%) ou percentual de estados OK**.
 
 OK, warning, critical, and no-data colors are configured in the main widget form. **Indicador do cabeçalho** also selects the LED or any bundled SVG used for the overall state at the top of every card. This header indicator is independent from metric icons and receives the color of the worst state found in the card. Numeric thresholds support both **higher is worse** and **lower is worse** directions.
 
@@ -311,7 +311,7 @@ OK, warning, critical, and no-data colors are configured in the main widget form
 
 **Maximum width of each card** prevents a few results from occupying the full width of a large widget. It defaults to `320 px` and can be configured from `160` to `1000 px`. This limit does not restrict the host count: new cards continue to be added automatically in columns and rows, aligned from the widget start.
 
-**Maximum queried period** protects the database from accidentally extensive selections. It defaults to `365 days` and can be configured from `1` to `365`. Detailed history remains capped at `7 days` for bars/graphs and `31 days` for summaries. Hourly trends may use the general limit, while per-day calculations accept at most `31 days`. The widget blocks unsupported ranges instead of silently truncating them.
+**Maximum queried period** protects the database from accidentally extensive selections. It defaults to `365 days` and can be configured from `1` to `365`. **Use consolidated data above** defaults to `24 hours`, preventing longer ranges from reading thousands of detailed samples. Consolidated data may use the general limit, while per-day calculations accept at most `31 days`. The widget blocks unsupported ranges instead of silently truncating them.
 
 Card rows occupy the entire height assigned to the widget, avoiding an empty strip at the bottom. When the rectangle becomes smaller, inner content is proportionally reduced and cards are redistributed across rows and columns; the widget creates neither horizontal nor vertical scrolling. With many hosts in a very small area, text naturally becomes smaller, so enlarge the widget when readability has priority.
 
@@ -321,7 +321,7 @@ In **Edit metric**, **Display mode** can show only the current value, combine it
 
 The period always follows the dashboard's **global time selector**. Navigating through hours, days, or absolute dates recalculates every visualization and summary for that range. Scheduled reports using **Yesterday** therefore use yesterday's range. The axis displays start, midpoint, and end; when the end is current, it displays **Agora**.
 
-Under **Historical data source**, choose **Automatic** to honor the item's effective retention and global Housekeeping overrides. If the range start is still retained in history, detailed samples are used; otherwise hourly trends are used for the entire range. **Detailed history** and **Hourly trends** can also be forced per metric. The recommended setup is `7d` history, `365d` trends, and automatic source. With trends, the visual “last value” is the average of the latest consolidated hour.
+Under **Data source**, choose **Automatic (recommended)**. Up to the configured threshold — `24 hours` by default — the widget uses detailed samples when retained. Above it, consolidated data is used even if detailed history still exists. **Detailed data — every sample** and **Consolidated data — lighter** can also be forced per metric. Internally these map to Zabbix History and Trends. With Trends, the visual “last value” is the average of the latest consolidated hour.
 
 In **Value + historical bar** and **Value + historical graph** modes, **Value displayed above history** can keep the last sample or show any historical calculation: sum, average, minimum, maximum, daily-maximum sum/average, or counter increase. The LED still represents the last sample; only the numeric text above the visualization is replaced.
 
@@ -333,7 +333,7 @@ The five historical colors may inherit the widget palette or be customized per m
 
 The optional summary shows **availability** when an availability item exists, or the percentage of **OK** buckets otherwise. No-data buckets are excluded from the denominator. Hover a strip to inspect its time range, state, minimum, average, and maximum.
 
-The historical visualization requires a numeric item to determine state. Trends preserve hourly minimum, maximum, average, and sample count, dramatically reducing query volume. Exact first/last values are not retained in Trends; automatic mode therefore keeps detailed history for those calculations. For a daily counter that only increases and resets, use the **daily maximum** as the lightweight equivalent of the day's last value.
+The historical visualization requires a numeric item to determine state. Trends preserve consolidated minimum, maximum, average, and sample count, dramatically reducing query volume. Exact first/last values are not retained in Trends; above the detailed-data threshold those calculations are blocked before querying. For a daily counter that only increases and resets, use the **daily maximum** as the lightweight equivalent of the day's last value.
 
 ### Text-only historical summary
 

@@ -153,13 +153,23 @@ $layout = (new CWidgetFormFieldsetCollapsibleView('Layout'))
 				'A distribuição automática continua adicionando colunas e linhas conforme os hosts do grupo.'
 			))
 	)
-	->addField(new CWidgetFieldIntegerBoxView($data['fields']['limite_cards']))
+	->addField(new CWidgetFieldIntegerBoxView($data['fields']['limite_cards']));
+
+$consultas_historicas = (new CWidgetFormFieldsetCollapsibleView('Consultas históricas'))
 	->addField(
 		(new CWidgetFieldIntegerBoxView($data['fields']['periodo_maximo_dias']))
 			->setFieldHint(makeHelpIcon(
 				'Proteção contra consultas muito extensas. Se o período global do dashboard ultrapassar este '.
-				'limite, o widget não consulta o banco e informa o motivo. Estatísticas podem chegar a 365 dias; '.
-				'o histórico detalhado possui limites menores. O período nunca é truncado silenciosamente.'
+				'limite, o widget não consulta o banco e informa o motivo. Dados consolidados podem chegar a 365 dias; '.
+				'dados detalhados possuem limites menores. O período nunca é truncado silenciosamente.'
+			))
+	)
+	->addField(
+		(new CWidgetFieldIntegerBoxView($data['fields']['limite_dados_detalhados_horas']))
+			->setFieldHint(makeHelpIcon(
+				'No modo Automático, intervalos acima deste limite usam dados consolidados, mesmo que cada coleta '.
+				'ainda esteja armazenada. O mesmo limite protege consultas forçadas em Dados detalhados. O padrão '.
+				'de 24 horas evita carregar milhares de amostras de itens coletados a cada minuto.'
 			))
 	);
 
@@ -214,6 +224,7 @@ $formulario
 	->addFieldset($filtros)
 	->addFieldset($metricas)
 	->addFieldset($layout)
+	->addFieldset($consultas_historicas)
 	->addFieldset($aparencia)
 	->includeJsFile('widget.edit.js.php')
 	->initFormJs('widget_form.init('.json_encode([
