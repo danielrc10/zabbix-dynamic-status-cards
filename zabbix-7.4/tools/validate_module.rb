@@ -49,7 +49,7 @@ check(manifest['manifest_version'] == 2.0, 'manifest_version must be 2.0')
 check(manifest['id'] == 'dynamic_status_cards', 'unexpected module ID')
 check(manifest['type'] == 'widget', 'module type must be widget')
 check(manifest['namespace'] == 'DynamicStatusCards', 'unexpected module namespace')
-check(manifest['version'] == '1.20.1', 'unexpected module version')
+check(manifest['version'] == '1.20.2', 'unexpected module version')
 check(manifest.dig('widget', 'js_class') == 'CWidgetDynamicStatusCards', 'responsive widget JS class is missing')
 check(manifest.dig('widget', 'in', 'groupids', 'type') == '_hostgroupids', 'dashboard host-group input is missing')
 check(manifest.dig('widget', 'in', 'hostids', 'type') == '_hostids', 'dashboard host input is missing')
@@ -97,6 +97,8 @@ check(combined_php.include?('limite_dados_detalhados_horas'),
   'configurable detailed-data threshold is missing')
 check(combined_php.include?('LIMITE_DADOS_DETALHADOS_HORAS_PADRAO = 24'),
   '24-hour automatic consolidated-data threshold is missing')
+check(combined_php.include?('$usa_dados_consolidados'),
+  'consolidated-data bucket resolution cap is missing')
 check(combined_php.include?('excede o limite de segurança'), 'history query safety message is missing')
 check(combined_php.include?('CWidgetFieldMetricList'), 'structured metric field is missing')
 check(combined_php.include?("ESTADO_LIMITES"), 'numeric threshold support is missing')

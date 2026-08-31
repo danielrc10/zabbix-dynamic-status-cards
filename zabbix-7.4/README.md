@@ -2,7 +2,7 @@
 
 [Português](#português) · [English](#english)
 
-> Zabbix 7.4 · Módulo 1.20.1 · Dados detalhados e consolidados automáticos · Agregações seguras · 66 ícones
+> Zabbix 7.4 · Módulo 1.20.2 · Dados detalhados e consolidados automáticos · Agregações seguras · 66 ícones
 
 ## Português
 

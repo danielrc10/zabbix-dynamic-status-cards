@@ -1,5 +1,19 @@
 # Histórico de versões / Changelog
 
+## 1.20.2 — 2026-08-31
+
+### Português
+
+- Ajusta a quantidade de blocos visuais à resolução dos dados consolidados.
+- Elimina faixas artificiais de “Sem dados” especialmente no intervalo de dois dias.
+- Mantém a resolução existente para histórico detalhado e para períodos consolidados de sete ou mais dias.
+
+### English
+
+- Matches visual bucket count to consolidated-data resolution.
+- Removes artificial no-data stripes, especially over two-day ranges.
+- Preserves the existing resolution for detailed history and consolidated ranges of seven days or longer.
+
 ## 1.20.1 — 2026-08-31
 
 ### Português

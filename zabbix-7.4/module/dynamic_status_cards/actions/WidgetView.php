@@ -885,6 +885,24 @@ class WidgetView extends CControllerDashboardWidgetView {
 			}
 		}
 
+		// PT-BR: Trends possuem um ponto consolidado por hora. Entre 24 e 72 horas,
+		// o mínimo visual de 72 blocos criava intervalos menores que uma hora e,
+		// portanto, blocos artificiais sem dados. Limitar a resolução à quantidade
+		// de horas preserva continuidade sem inventar amostras.
+		// EN: Trends provide one consolidated point per hour. Between 24 and 72
+		// hours, the 72-bucket visual minimum created sub-hour buckets and artificial
+		// no-data gaps. Capping resolution at the hour count preserves continuity.
+		$usa_dados_consolidados = (bool) array_filter(
+			$grupo['itens'],
+			static fn(array $item): bool => $item['source'] === 'trends'
+		);
+		if ($usa_dados_consolidados) {
+			$grupo['blocos'] = min(
+				$grupo['blocos'],
+				max(1, (int) ceil($duracao / SEC_PER_HOUR))
+			);
+		}
+
 		foreach (['history', 'trends'] as $fonte) {
 			$itens_fonte = array_values(array_filter(
 				$grupo['itens'],
